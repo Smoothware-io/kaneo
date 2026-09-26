@@ -1744,7 +1744,8 @@
 			"members": "Leden",
 			"invitations": "Uitnodigingen",
 			"more": "Meer",
-			"backToBoard": "Terug naar bord"
+			"backToBoard": "Terug naar bord",
+			"myTasks": "My Tasks"
 		},
 		"projectList": {
 			"viewProject": "Project bekijken",
@@ -2459,6 +2460,13 @@
 		"checklistProgress": "{{completed}} van {{total}} checklistitems voltooid",
 		"customFields": {
 			"ariaLabel": "Custom fields"
+		},
+		"myTasks": {
+			"empty": {
+				"description": "Tasks assigned to you across all projects will show up here.",
+				"title": "No tasks assigned to you"
+			},
+			"loading": "Loading your tasks…"
 		}
 	},
 	"invitations": {

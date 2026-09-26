@@ -1741,7 +1741,8 @@
 			"members": "Thành viên",
 			"invitations": "Lời mời",
 			"more": "Thêm",
-			"backToBoard": "Quay lại bảng"
+			"backToBoard": "Quay lại bảng",
+			"myTasks": "My Tasks"
 		},
 		"projectList": {
 			"viewProject": "Xem dự án",
@@ -2451,6 +2452,13 @@
 		"checklistProgress": "Đã hoàn thành {{completed}} trên {{total}} mục trong danh sách kiểm tra",
 		"customFields": {
 			"ariaLabel": "Custom fields"
+		},
+		"myTasks": {
+			"empty": {
+				"description": "Tasks assigned to you across all projects will show up here.",
+				"title": "No tasks assigned to you"
+			},
+			"loading": "Loading your tasks…"
 		}
 	},
 	"invitations": {

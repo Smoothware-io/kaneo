@@ -6,6 +6,8 @@ export const taskParam = z.object({ id: z.string() });
 
 export const projectIdParam = z.object({ projectId: z.string() });
 
+export const workspaceIdParam = z.object({ workspaceId: z.string() });
+
 const priority = z.enum(VALID_PRIORITIES);
 
 // Required object of optional filters: a RouteParameter cannot itself be optional.

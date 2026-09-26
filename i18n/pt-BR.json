@@ -1747,7 +1747,8 @@
 			"members": "Membros",
 			"invitations": "Convites",
 			"more": "Mais",
-			"backToBoard": "Voltar ao quadro"
+			"backToBoard": "Voltar ao quadro",
+			"myTasks": "My Tasks"
 		},
 		"projectList": {
 			"viewProject": "Ver projeto",
@@ -2467,6 +2468,13 @@
 		"checklistProgress": "{{completed}} de {{total}} itens da lista concluídos",
 		"customFields": {
 			"ariaLabel": "Custom fields"
+		},
+		"myTasks": {
+			"empty": {
+				"description": "Tasks assigned to you across all projects will show up here.",
+				"title": "No tasks assigned to you"
+			},
+			"loading": "Loading your tasks…"
 		}
 	},
 	"invitations": {

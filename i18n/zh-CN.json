@@ -1741,7 +1741,8 @@
 			"members": "成员",
 			"invitations": "邀请",
 			"more": "更多",
-			"backToBoard": "返回看板"
+			"backToBoard": "返回看板",
+			"myTasks": "My Tasks"
 		},
 		"projectList": {
 			"viewProject": "查看项目",
@@ -2451,6 +2452,13 @@
 		"checklistProgress": "已完成 {{completed}}/{{total}} 个清单项",
 		"customFields": {
 			"ariaLabel": "Custom fields"
+		},
+		"myTasks": {
+			"empty": {
+				"description": "Tasks assigned to you across all projects will show up here.",
+				"title": "No tasks assigned to you"
+			},
+			"loading": "Loading your tasks…"
 		}
 	},
 	"invitations": {

@@ -1744,7 +1744,8 @@
 			"members": "Üzvlər",
 			"invitations": "Dəvətlər",
 			"more": "Daha çox",
-			"backToBoard": "Lövhəyə qayıt"
+			"backToBoard": "Lövhəyə qayıt",
+			"myTasks": "My Tasks"
 		},
 		"projectList": {
 			"viewProject": "Layihəyə bax",
@@ -2459,6 +2460,13 @@
 		"checklistProgress": "{{completed}} of {{total}} checklist items completed",
 		"customFields": {
 			"ariaLabel": "Custom fields"
+		},
+		"myTasks": {
+			"empty": {
+				"description": "Tasks assigned to you across all projects will show up here.",
+				"title": "No tasks assigned to you"
+			},
+			"loading": "Loading your tasks…"
 		}
 	},
 	"invitations": {

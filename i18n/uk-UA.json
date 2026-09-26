@@ -1750,7 +1750,8 @@
 			"members": "Учасники",
 			"invitations": "Запрошення",
 			"more": "Більше",
-			"backToBoard": "Назад до дошки"
+			"backToBoard": "Назад до дошки",
+			"myTasks": "My Tasks"
 		},
 		"projectList": {
 			"viewProject": "Переглянути проєкт",
@@ -2475,6 +2476,13 @@
 		"checklistProgress": "Виконано пунктів списку: {{completed}} із {{total}}",
 		"customFields": {
 			"ariaLabel": "Custom fields"
+		},
+		"myTasks": {
+			"empty": {
+				"description": "Tasks assigned to you across all projects will show up here.",
+				"title": "No tasks assigned to you"
+			},
+			"loading": "Loading your tasks…"
 		}
 	},
 	"invitations": {

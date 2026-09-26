@@ -8449,6 +8449,61 @@
         }
       }
     },
+    "/task/my/{workspaceId}": {
+      "get": {
+        "operationId": "listMyTasks",
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "List my tasks",
+        "description": "Get the authenticated user's tasks across every project in the workspace, grouped into the default status columns. Returns the same board shape as listTasks, using a synthetic \"My Tasks\" project.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "workspaceId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The user's cross-project personal board",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BoardResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials"
+          },
+          "403": {
+            "description": "No access to the workspace",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Request timed out",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/task/bulk": {
       "patch": {
         "operationId": "bulkUpdateTasks",

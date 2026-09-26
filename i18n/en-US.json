@@ -1741,6 +1741,7 @@
 		"sidebar": {
 			"overview": "Overview",
 			"projects": "Projects",
+			"myTasks": "My Tasks",
 			"members": "Members",
 			"invitations": "Invitations",
 			"more": "More",
@@ -2005,6 +2006,13 @@
 	"tasks": {
 		"checklistProgress": "{{completed}} of {{total}} checklist items completed",
 		"title": "Tasks",
+		"myTasks": {
+			"loading": "Loading your tasks…",
+			"empty": {
+				"title": "No tasks assigned to you",
+				"description": "Tasks assigned to you across all projects will show up here."
+			}
+		},
 		"status": {
 			"label": "Status",
 			"to-do": "To Do",

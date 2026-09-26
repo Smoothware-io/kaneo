@@ -38,6 +38,7 @@ import createTask from "./controllers/create-task";
 import deleteTask from "./controllers/delete-task";
 import duplicateTask from "./controllers/duplicate-task";
 import exportTasks from "./controllers/export-tasks";
+import getMyTasks from "./controllers/get-my-tasks";
 import getTask from "./controllers/get-task";
 import getTasks from "./controllers/get-tasks";
 import importTasks from "./controllers/import-tasks";
@@ -91,6 +92,7 @@ import {
   updateStatusBody,
   updateTaskBody,
   updateTitleBody,
+  workspaceIdParam,
 } from "./schema";
 
 const listTasksRoute = createRoute({
@@ -110,6 +112,23 @@ const listTasksRoute = createRoute({
       "Unknown project, or its workspace could not be determined",
     ),
     403: errorResponse("No access to the project's workspace"),
+  },
+});
+
+const listMyTasksRoute = createRoute({
+  method: "get",
+  operationId: "listMyTasks",
+  path: "/my/{workspaceId}",
+  tags: ["Tasks"],
+  summary: "List my tasks",
+  description:
+    'Get the authenticated user\'s tasks across every project in the workspace, grouped into the default status columns. Returns the same board shape as listTasks, using a synthetic "My Tasks" project.',
+  middleware: [workspaceAccess.fromParam("workspaceId")] as const,
+  request: { params: workspaceIdParam },
+  responses: {
+    200: jsonResponse("The user's cross-project personal board", boardSchema),
+    503: errorResponse("Request timed out"),
+    403: errorResponse("No access to the workspace"),
   },
 });
 
@@ -650,6 +669,18 @@ const task = apiRouter<BaseVariables & { workspaceId: string }>()
     const tasks = await getTasks(projectId, filters);
 
     return c.json(tasks, 200);
+  })
+  .openapi(listMyTasksRoute, async (c) => {
+    const { workspaceId } = c.req.valid("param");
+    const userId = c.get("userId");
+
+    if (!userId) {
+      throw new HTTPException(401, { message: "Unauthorized" });
+    }
+
+    const board = await getMyTasks(workspaceId, userId);
+
+    return c.json(board, 200);
   })
   .openapi(bulkUpdateTasksRoute, async (c) => {
     const { taskIds, operation, value } = c.req.valid("json");

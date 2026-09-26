@@ -398,7 +398,8 @@
 			"members": "Członkowie",
 			"invitations": "Zaproszenia",
 			"more": "Więcej",
-			"backToBoard": "Wróć do tablicy"
+			"backToBoard": "Wróć do tablicy",
+			"myTasks": "My Tasks"
 		},
 		"projectList": {
 			"viewProject": "Zobacz projekt",
@@ -2657,6 +2658,13 @@
 		"checklistProgress": "Ukończone elementy listy kontrolnej: {{completed}} z {{total}}",
 		"customFields": {
 			"ariaLabel": "Custom fields"
+		},
+		"myTasks": {
+			"empty": {
+				"description": "Tasks assigned to you across all projects will show up here.",
+				"title": "No tasks assigned to you"
+			},
+			"loading": "Loading your tasks…"
 		}
 	},
 	"press": {
