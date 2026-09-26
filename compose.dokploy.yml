@@ -1,0 +1,63 @@
+# Kaneo on Dokploy (dialupy.com host) — builds from THIS fork so we can edit/extend.
+#
+# Deploy via Dokploy "Compose" service:
+#   Repository:      Smoothware-io/kaneo   (branch: main)
+#   Compose path:    compose.dokploy.yml
+#   Domain:          kaneo.smoothweb.nl  ->  service "kaneo", container port 5173
+#
+# Required env (set in Dokploy → this service → Environment):
+#   KANEO_CLIENT_URL=https://kaneo.smoothweb.nl   (public URL, no :5173, no /api)
+#   AUTH_SECRET=<openssl rand -hex 32>
+#   POSTGRES_PASSWORD=<strong password>
+# Email + password sign-in (no SMTP) is forced via DISABLE_EMAIL_OTP_SIGN_IN=true.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-kaneo}
+      POSTGRES_USER: ${POSTGRES_USER:-kaneo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kaneo -d kaneo"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kaneo:
+    build:
+      context: .
+      dockerfile: Dockerfile.kaneo
+    environment:
+      KANEO_CLIENT_URL: ${KANEO_CLIENT_URL:?set KANEO_CLIENT_URL}
+      AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET}
+      # The image derives DATABASE_URL from these POSTGRES_* vars at startup.
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-kaneo}
+      POSTGRES_USER: ${POSTGRES_USER:-kaneo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      # Use email + password sign-in instead of SMTP email OTP.
+      DISABLE_EMAIL_OTP_SIGN_IN: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:5173/api/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 120s
+      retries: 5
+    networks:
+      - dokploy-network
+      - default
+
+networks:
+  dokploy-network:
+    external: true
+
+volumes:
+  postgres_data:
