@@ -32,9 +32,16 @@ import TaskCard from "./task-card";
 type KanbanBoardProps = {
   project: ProjectWithTasks;
   disableDragDrop?: boolean;
+  // "personal" is the cross-project My Tasks board: dragging changes only a
+  // task's status (never its position, which is scoped to its own project).
+  variant?: "project" | "personal";
 };
 
-function KanbanBoard({ project, disableDragDrop = false }: KanbanBoardProps) {
+function KanbanBoard({
+  project,
+  disableDragDrop = false,
+  variant = "project",
+}: KanbanBoardProps) {
   const queryClient = useQueryClient();
   const { setProject } = useProjectStore();
   const {
@@ -93,6 +100,10 @@ function KanbanBoard({ project, disableDragDrop = false }: KanbanBoardProps) {
       },
       Enter: () => {
         if (focusedTaskId && project) {
+          if (variant === "personal") {
+            navigate({ to: ".", search: { taskId: focusedTaskId } });
+            return;
+          }
           navigate({
             to: "/dashboard/workspace/$workspaceId/project/$projectId/task/$taskId",
             params: {
@@ -143,6 +154,44 @@ function KanbanBoard({ project, disableDragDrop = false }: KanbanBoardProps) {
 
     const activeId = active.id.toString();
     const overId = over.id.toString();
+
+    if (variant === "personal") {
+      // Cross-project board: only a column change is meaningful, and we persist
+      // status alone so each task keeps its position on its own project board.
+      const personalProject = produce(project, (draft) => {
+        const sourceColumn = draft?.columns?.find((col) =>
+          col.tasks.some((task) => task.id === activeId),
+        );
+        const destinationColumn = draft?.columns?.find(
+          (col) =>
+            col.id === overId || col.tasks.some((task) => task.id === overId),
+        );
+        if (
+          !sourceColumn ||
+          !destinationColumn ||
+          sourceColumn.id === destinationColumn.id
+        ) {
+          return;
+        }
+        const movedIndex = sourceColumn.tasks.findIndex(
+          (task) => task.id === activeId,
+        );
+        const task = sourceColumn.tasks[movedIndex];
+        sourceColumn.tasks = sourceColumn.tasks.filter(
+          (t) => t.id !== activeId,
+        );
+        task.status = destinationColumn.slug;
+        destinationColumn.tasks.unshift(task);
+        updateTask({ ...task, status: destinationColumn.slug });
+      });
+
+      setProject(personalProject);
+      queryClient.invalidateQueries({
+        queryKey: ["my-tasks", project.workspaceId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      return;
+    }
 
     const updatedProject = produce(project, (draft) => {
       const sourceColumn = draft?.columns?.find((col) =>
@@ -279,7 +328,11 @@ function KanbanBoard({ project, disableDragDrop = false }: KanbanBoardProps) {
                   "h-fit": !!background,
                 })}
               >
-                <Column column={column} disableDragDrop={disableDragDrop} />
+                <Column
+                  column={column}
+                  disableDragDrop={disableDragDrop}
+                  variant={variant}
+                />
               </div>
             ))}
           </div>

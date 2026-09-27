@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/preview-card";
 import { useDeleteTask } from "@/hooks/mutations/task/use-delete-task";
 import useGetCustomFieldValuesByProject from "@/hooks/queries/custom-field/use-get-custom-field-values-by-project";
+import useGetProjects from "@/hooks/queries/project/use-get-projects";
 import useActiveWorkspace from "@/hooks/queries/workspace/use-active-workspace";
 import { useGetActiveWorkspaceUsers } from "@/hooks/queries/workspace-users/use-get-active-workspace-users";
 import {
@@ -53,9 +54,14 @@ import { TaskLabels } from "./task-labels";
 type TaskCardProps = {
   task: Task;
   disableDragDrop?: boolean;
+  variant?: "project" | "personal";
 };
 
-function TaskCard({ task, disableDragDrop = false }: TaskCardProps) {
+function TaskCard({
+  task,
+  disableDragDrop = false,
+  variant = "project",
+}: TaskCardProps) {
   const { t } = useTranslation();
   const {
     attributes,
@@ -68,6 +74,15 @@ function TaskCard({ task, disableDragDrop = false }: TaskCardProps) {
   const { project } = useProjectStore();
   const taskIsCompleted = isTaskCompleted(task.status, project?.columns);
   const { data: workspace } = useActiveWorkspace();
+  const { data: projectsList } = useGetProjects({
+    workspaceId: workspace?.id ?? "",
+  });
+  // On the cross-project personal board, show the task's real project instead
+  // of the synthetic "my-tasks" slug+number, which would be meaningless.
+  const cardProjectName =
+    variant === "personal"
+      ? projectsList?.find((item) => item.id === task.projectId)?.name
+      : null;
   const { mutateAsync: deleteTask } = useDeleteTask();
   const navigate = useNavigate();
   const {
@@ -233,11 +248,17 @@ function TaskCard({ task, disableDragDrop = false }: TaskCardProps) {
               }
             }}
           >
-            {showTaskNumbers && (
-              <div className="mb-2 text-[10px] font-mono text-muted-foreground/90">
-                {project?.slug}-{task.number}
-              </div>
-            )}
+            {variant === "personal"
+              ? cardProjectName && (
+                  <div className="mb-2 text-[10px] font-mono text-muted-foreground/90">
+                    {cardProjectName}
+                  </div>
+                )
+              : showTaskNumbers && (
+                  <div className="mb-2 text-[10px] font-mono text-muted-foreground/90">
+                    {project?.slug}-{task.number}
+                  </div>
+                )}
 
             {showAssignees && (
               <div className="absolute top-3 right-3">
@@ -487,7 +508,7 @@ function TaskCard({ task, disableDragDrop = false }: TaskCardProps) {
           </div>
         </ContextMenuTrigger>
 
-        {project && workspace && (
+        {variant !== "personal" && project && workspace && (
           <TaskCardContextMenuContent
             task={task}
             taskCardContext={{

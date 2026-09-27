@@ -8,6 +8,7 @@ import { ColumnHeader } from "./column-header";
 type ColumnProps = {
   column: ProjectWithTasks["columns"][number];
   disableDragDrop?: boolean;
+  variant?: "project" | "personal";
 };
 
 export const columnVariants = cva(
@@ -52,7 +53,11 @@ export const columnVariants = cva(
   },
 );
 
-function Column({ column, disableDragDrop = false }: ColumnProps) {
+function Column({
+  column,
+  disableDragDrop = false,
+  variant = "project",
+}: ColumnProps) {
   const [isDropzoneOver, setIsDropzoneOver] = useState(false);
   const { background } = useBackgroundStore();
 
@@ -64,12 +69,13 @@ function Column({ column, disableDragDrop = false }: ColumnProps) {
       })}
     >
       <div className="shrink-0 border-b border-border/60 px-3 py-2">
-        <ColumnHeader column={column} />
+        <ColumnHeader column={column} variant={variant} />
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2 pt-1 pb-2 [-webkit-overflow-scrolling:touch]">
         <ColumnDropzone
           column={column}
           disableDragDrop={disableDragDrop}
+          variant={variant}
           onIsOverChange={setIsDropzoneOver}
         />
       </div>

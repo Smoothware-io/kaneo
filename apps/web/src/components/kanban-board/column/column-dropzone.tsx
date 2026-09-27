@@ -11,12 +11,14 @@ import TaskCard from "../task-card";
 type ColumnDropzoneProps = {
   column: ProjectWithTasks["columns"][number];
   disableDragDrop?: boolean;
+  variant?: "project" | "personal";
   onIsOverChange?: (isOver: boolean) => void;
 };
 
 export function ColumnDropzone({
   column,
   disableDragDrop = false,
+  variant = "project",
   onIsOverChange,
 }: ColumnDropzoneProps) {
   const { setNodeRef, isOver } = useDroppable({
@@ -55,7 +57,11 @@ export function ColumnDropzone({
                 }
                 transition={{ type: "spring", duration: 0.35, bounce: 0.15 }}
               >
-                <TaskCard task={task} disableDragDrop={disableDragDrop} />
+                <TaskCard
+                  task={task}
+                  disableDragDrop={disableDragDrop}
+                  variant={variant}
+                />
               </motion.div>
             ))}
           </AnimatePresence>

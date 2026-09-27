@@ -13,9 +13,13 @@ import { ArchiveTasksModal } from "../../shared/modals/archive-tasks-modal";
 
 type ColumnHeaderProps = {
   column: ProjectWithTasks["columns"][number];
+  variant?: "project" | "personal";
 };
 
-export function ColumnHeader({ column }: ColumnHeaderProps) {
+export function ColumnHeader({
+  column,
+  variant = "project",
+}: ColumnHeaderProps) {
   const { t } = useTranslation();
   const { project, setProject } = useProjectStore();
   const { mutate: updateTask } = useUpdateTask();
@@ -65,17 +69,20 @@ export function ColumnHeader({ column }: ColumnHeaderProps) {
       </div>
 
       <div className="flex items-center">
-        {canTask && column.isFinal && column.tasks.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setIsArchiveModalOpen(true)}
-            className="flex items-center rounded-md px-2 py-1 text-left text-muted-foreground transition-colors hover:bg-accent/50"
-            title={t("tasks:listView.archiveAllTooltip")}
-          >
-            <Archive className="w-4 h-4 text-muted-foreground" />
-          </button>
-        )}
-        {canCreate && (
+        {variant !== "personal" &&
+          canTask &&
+          column.isFinal &&
+          column.tasks.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setIsArchiveModalOpen(true)}
+              className="flex items-center rounded-md px-2 py-1 text-left text-muted-foreground transition-colors hover:bg-accent/50"
+              title={t("tasks:listView.archiveAllTooltip")}
+            >
+              <Archive className="w-4 h-4 text-muted-foreground" />
+            </button>
+          )}
+        {variant !== "personal" && canCreate && (
           <button
             type="button"
             onClick={() => setIsTaskModalOpen(true)}
