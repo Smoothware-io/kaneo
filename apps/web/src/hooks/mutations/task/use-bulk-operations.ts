@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import bulkOperation from "@/fetchers/task/bulk-operation";
-import deleteTask from "@/fetchers/task/delete-task";
+import { requestDeleteReason } from "@/lib/task-reason";
 
 export function useBulkOperations() {
   const queryClientRef = useQueryClient();
@@ -8,11 +8,17 @@ export function useBulkOperations() {
   const invalidateCommon = () => {
     queryClientRef.invalidateQueries({ queryKey: ["tasks"] });
     queryClientRef.invalidateQueries({ queryKey: ["projects"] });
+    queryClientRef.invalidateQueries({ queryKey: ["task-deletions"] });
   };
 
+  // One reason covers the whole selection; the prompt also confirms.
   const bulkDelete = useMutation({
     mutationFn: async (taskIds: string[]) => {
-      await Promise.all(taskIds.map((id) => deleteTask(id)));
+      const reason = await requestDeleteReason({
+        title: "",
+        count: taskIds.length,
+      });
+      await bulkOperation({ taskIds, operation: "delete", reason });
     },
     onSuccess: invalidateCommon,
   });

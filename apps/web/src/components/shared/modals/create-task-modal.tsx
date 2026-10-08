@@ -373,11 +373,15 @@ function CreateTaskModalContent({
     const abandoned = draftTaskRef.current;
     if (abandoned && !didSubmitRef.current) {
       draftTaskRef.current = null;
-      void deleteTask(abandoned.id).catch(() => {
+      void deleteTask({
+        id: abandoned.id,
+        title: abandoned.title,
+        reason: t("tasks:delete.draftDiscardedReason"),
+      }).catch(() => {
         // An expired session can prevent cleanup; never reuse the draft.
       });
     }
-  }, [deleteTask]);
+  }, [deleteTask, t]);
 
   useEffect(() => {
     activeRef.current = true;
@@ -502,7 +506,11 @@ function CreateTaskModalContent({
     }).then((task) => {
       const createdTask = normalizeTask(task);
       if (!activeRef.current) {
-        void deleteTask(createdTask.id).catch(() => {});
+        void deleteTask({
+          id: createdTask.id,
+          title: createdTask.title,
+          reason: t("tasks:delete.draftDiscardedReason"),
+        }).catch(() => {});
         return null;
       }
       draftTaskRef.current = createdTask;

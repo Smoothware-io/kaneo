@@ -131,6 +131,47 @@
             "type": "string",
             "description": "One of: no-priority, low, medium, high, urgent."
           },
+          "blockedReason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why the task is blocked. Only set while status is `blocked`."
+          },
+          "blockedOnUserId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Workspace member needed to unblock the task. Only set while status is `blocked`."
+          },
+          "cancelReason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why the task was cancelled. Only set while status is `cancelled`."
+          },
+          "archivedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When the task was archived. Only set while status is `archived`."
+          },
+          "carryOverCount": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "How many sprint closes the task was carried over unfinished."
+          },
+          "memberIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Team members working on the task, next to the responsible assignee in `userId`."
+          },
           "startDate": {
             "type": [
               "string",
@@ -220,6 +261,12 @@
           "description",
           "status",
           "priority",
+          "blockedReason",
+          "blockedOnUserId",
+          "cancelReason",
+          "archivedAt",
+          "carryOverCount",
+          "memberIds",
           "startDate",
           "dueDate",
           "position",
@@ -409,6 +456,13 @@
             "items": {
               "$ref": "#/components/schemas/BoardTask"
             }
+          },
+          "cancelledTasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BoardTask"
+            },
+            "description": "Cancelled tasks, kept off the board with their reason."
           }
         },
         "required": [
@@ -422,7 +476,8 @@
           "backgroundVersion",
           "columns",
           "archivedTasks",
-          "plannedTasks"
+          "plannedTasks",
+          "cancelledTasks"
         ]
       },
       "TaskDescriptionPage": {
@@ -960,6 +1015,47 @@
             "type": "string",
             "description": "One of: no-priority, low, medium, high, urgent."
           },
+          "blockedReason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why the task is blocked. Only set while status is `blocked`."
+          },
+          "blockedOnUserId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Workspace member needed to unblock the task. Only set while status is `blocked`."
+          },
+          "cancelReason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why the task was cancelled. Only set while status is `cancelled`."
+          },
+          "archivedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When the task was archived. Only set while status is `archived`."
+          },
+          "carryOverCount": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "How many sprint closes the task was carried over unfinished."
+          },
+          "memberIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Team members working on the task, next to the responsible assignee in `userId`."
+          },
           "startDate": {
             "type": [
               "string",
@@ -1207,6 +1303,67 @@
           "successful",
           "failed",
           "tasks"
+        ]
+      },
+      "ArchiveCompletedResult": {
+        "type": "object",
+        "properties": {
+          "archivedCount": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "archivedCount"
+        ]
+      },
+      "TaskDeletion": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "taskId": {
+            "type": "string"
+          },
+          "taskNumber": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "deletedById": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "deletedByName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "deletedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "taskId",
+          "taskNumber",
+          "title",
+          "reason",
+          "deletedById",
+          "deletedByName",
+          "deletedAt"
         ]
       },
       "TaskImageUpload": {
@@ -1615,7 +1772,7 @@
           },
           "type": {
             "type": "string",
-            "description": "One of: info, task_created, workspace_created, task_status_changed, task_assignee_changed, time_entry_created, due_date_reminder, task_overdue, task_mention, task_comment."
+            "description": "One of: info, task_created, workspace_created, task_status_changed, task_assignee_changed, time_entry_created, due_date_reminder, task_overdue, task_mention, task_comment, task_blocked_on_you, task_member_added."
           },
           "eventData": {
             "description": "Type-specific payload, e.g. { taskTitle, oldStatus, newStatus, projectId, workspaceId }."
@@ -1982,6 +2139,113 @@
           "title",
           "createdAt",
           "relevanceScore"
+        ]
+      },
+      "Sprint": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "weekYear": {
+            "type": "integer"
+          },
+          "week": {
+            "type": "integer",
+            "description": "ISO week number of the moment the sprint was closed."
+          },
+          "closedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "closedById": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "closedByName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "completedCount": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Finished tasks archived by this close."
+          },
+          "carriedOverCount": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Unfinished tasks that rolled over into the next week."
+          }
+        },
+        "required": [
+          "id",
+          "weekYear",
+          "week",
+          "closedAt",
+          "closedById",
+          "completedCount",
+          "carriedOverCount"
+        ]
+      },
+      "SprintTask": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "number": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "projectName": {
+            "type": "string"
+          },
+          "projectSlug": {
+            "type": "string"
+          },
+          "userId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "assigneeName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "carryOverCount": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "title",
+          "status",
+          "projectId",
+          "projectName",
+          "projectSlug",
+          "userId",
+          "assigneeName",
+          "carryOverCount"
         ]
       },
       "GitHubAppInfo": {
@@ -8544,6 +8808,14 @@
                       "null"
                     ],
                     "description": "The new value for the chosen operation. Unused by `delete`; null clears an assignee or due date."
+                  },
+                  "reason": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 2000,
+                    "description": "Why the tasks are deleted. Required by `delete`."
                   }
                 },
                 "required": [
@@ -8590,6 +8862,16 @@
           },
           "404": {
             "description": "No tasks found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The assignee already has the maximum number of tasks in progress",
             "content": {
               "text/plain": {
                 "schema": {
@@ -8673,6 +8955,29 @@
                         "value"
                       ]
                     }
+                  },
+                  "blockedReason": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 2000,
+                    "description": "Why the task is blocked. Required when entering the `blocked` column; omit to keep the current reason while it stays blocked."
+                  },
+                  "blockedOnUserId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Workspace member needed to unblock the task. Null clears it; omit to keep the current one."
+                  },
+                  "cancelReason": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 2000,
+                    "description": "Why the task was cancelled. Required when entering the `cancelled` status."
                   }
                 },
                 "required": [
@@ -8711,6 +9016,16 @@
           },
           "403": {
             "description": "No workspace access, or missing task:create permission",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The assignee already has the maximum number of tasks in progress",
             "content": {
               "text/plain": {
                 "schema": {
@@ -8943,6 +9258,29 @@
                   },
                   "userId": {
                     "type": "string"
+                  },
+                  "blockedReason": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 2000,
+                    "description": "Why the task is blocked. Required when entering the `blocked` column; omit to keep the current reason while it stays blocked."
+                  },
+                  "blockedOnUserId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Workspace member needed to unblock the task. Null clears it; omit to keep the current one."
+                  },
+                  "cancelReason": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 2000,
+                    "description": "Why the task was cancelled. Required when entering the `cancelled` status."
                   }
                 },
                 "required": [
@@ -8989,6 +9327,16 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "The assignee already has the maximum number of tasks in progress",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           }
         }
       },
@@ -8998,7 +9346,7 @@
           "Tasks"
         ],
         "summary": "Delete task",
-        "description": "Permanently delete a task and its comments, labels, and time entries.",
+        "description": "Permanently delete a task and its comments, labels, and time entries. The reason is kept, with the title and who deleted it, in the project's deletion log.",
         "parameters": [
           {
             "schema": {
@@ -9009,6 +9357,26 @@
             "in": "path"
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 2000,
+                    "description": "Why the task is deleted. Kept in the project's deletion log."
+                  }
+                },
+                "required": [
+                  "reason"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "The deleted task",
@@ -9122,6 +9490,16 @@
           },
           "404": {
             "description": "Task or destination project not found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The assignee already has the maximum number of tasks in progress",
             "content": {
               "text/plain": {
                 "schema": {
@@ -9247,6 +9625,20 @@
                             "string",
                             "null"
                           ]
+                        },
+                        "blockedReason": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "Required for `blocked` tasks; without it they import as `planned`."
+                        },
+                        "cancelReason": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "Required for `cancelled` tasks; without it they import as `planned`."
                         }
                       },
                       "required": [
@@ -9300,6 +9692,187 @@
         }
       }
     },
+    "/task/members/{id}": {
+      "put": {
+        "operationId": "updateTaskMembers",
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Update task team members",
+        "description": "Replace the team members working on a task. The responsible person stays the assignee set through the assignee route.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 50,
+                    "description": "The full set of team members. Replaces the current members; the responsible assignee is set separately."
+                  }
+                },
+                "required": [
+                  "userIds"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated task",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid body, or too many team members",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials"
+          },
+          "403": {
+            "description": "No workspace access, missing task:assign permission, or a member outside the workspace",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/task/archive-completed/{projectId}": {
+      "post": {
+        "operationId": "archiveCompletedTasks",
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Archive completed tasks",
+        "description": "Archive every task in the project's final columns. Archived tasks leave the board and stay listed in the board's `archivedTasks`, with `archivedAt` for grouping by week.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "projectId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "How many tasks were archived",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArchiveCompletedResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials"
+          },
+          "403": {
+            "description": "No workspace access, or missing task:update permission",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/task/deletions/{projectId}": {
+      "get": {
+        "operationId": "listTaskDeletions",
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "List deleted tasks",
+        "description": "The project's most recent task deletions (up to 200), with the reason and who deleted each task.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "projectId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted tasks, newest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TaskDeletion"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials"
+          },
+          "403": {
+            "description": "No access to the project's workspace",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/task/status/{id}": {
       "put": {
         "operationId": "updateTaskStatus",
@@ -9307,7 +9880,7 @@
           "Tasks"
         ],
         "summary": "Update task status",
-        "description": "Move a task to another column in the same project.",
+        "description": "Move a task to another column in the same project. Moving into `blocked` requires `blockedReason`; moving into `in-progress` fails with 409 when the assignee already has the maximum number of tasks in progress.",
         "parameters": [
           {
             "schema": {
@@ -9327,6 +9900,29 @@
                 "properties": {
                   "status": {
                     "type": "string"
+                  },
+                  "blockedReason": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 2000,
+                    "description": "Why the task is blocked. Required when entering the `blocked` column; omit to keep the current reason while it stays blocked."
+                  },
+                  "blockedOnUserId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Workspace member needed to unblock the task. Null clears it; omit to keep the current one."
+                  },
+                  "cancelReason": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 2000,
+                    "description": "Why the task was cancelled. Required when entering the `cancelled` status."
                   }
                 },
                 "required": [
@@ -9362,6 +9958,16 @@
           },
           "403": {
             "description": "No workspace access, or missing task:update permission",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The assignee already has the maximum number of tasks in progress",
             "content": {
               "text/plain": {
                 "schema": {
@@ -9529,6 +10135,16 @@
           },
           "404": {
             "description": "Assignee is not a member of the workspace",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The assignee already has the maximum number of tasks in progress",
             "content": {
               "text/plain": {
                 "schema": {
@@ -12492,6 +13108,220 @@
           },
           "403": {
             "description": "No access to the workspace",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sprint/board/{workspaceId}": {
+      "get": {
+        "operationId": "getSprintBoard",
+        "tags": [
+          "Sprints"
+        ],
+        "summary": "Get the sprint board",
+        "description": "Every open task across the workspace's active projects, grouped into the shared status columns. Backlog, archived and cancelled tasks are left out.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "workspaceId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The sprint board",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BoardResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials"
+          },
+          "403": {
+            "description": "No access to the workspace",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Sprint board request timed out",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sprint/close/{workspaceId}": {
+      "post": {
+        "operationId": "closeSprint",
+        "tags": [
+          "Sprints"
+        ],
+        "summary": "Close the sprint",
+        "description": "Close the week for the whole workspace: finished tasks in every active project are archived under this sprint, and unfinished tasks stay with their carry-over count raised by one.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "workspaceId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The closed sprint",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Sprint"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials"
+          },
+          "403": {
+            "description": "No workspace access, or missing workspace:update and workspace:manage_settings permission",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sprint/history/{workspaceId}": {
+      "get": {
+        "operationId": "listSprints",
+        "tags": [
+          "Sprints"
+        ],
+        "summary": "List closed sprints",
+        "description": "The workspace's closed sprints, newest first (up to 52).",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "workspaceId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Closed sprints",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Sprint"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials"
+          },
+          "403": {
+            "description": "No access to the workspace",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sprint/history/{workspaceId}/{sprintId}": {
+      "get": {
+        "operationId": "listSprintTasks",
+        "tags": [
+          "Sprints"
+        ],
+        "summary": "List tasks finished in a sprint",
+        "description": "The tasks a closed sprint archived as finished.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "workspaceId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "sprintId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Finished tasks",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SprintTask"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials"
+          },
+          "403": {
+            "description": "No access to the workspace",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Sprint not found",
             "content": {
               "text/plain": {
                 "schema": {

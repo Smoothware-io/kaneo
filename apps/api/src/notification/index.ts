@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import db from "../database";
-import { projectTable, taskTable } from "../database/schema";
+import { projectTable, taskTable, userTable } from "../database/schema";
 import { subscribeToEvent } from "../events";
 import {
   apiRouter,
@@ -246,6 +246,76 @@ subscribeToEvent<{
       eventData: {
         taskTitle: data.title,
         projectId: task?.projectId ?? null,
+        workspaceId: project?.workspaceId ?? null,
+      },
+      resourceId: data.taskId,
+      resourceType: "task",
+    });
+  }
+});
+
+subscribeToEvent<{
+  taskId: string;
+  projectId: string;
+  userId?: string;
+  blockedOnUserId: string;
+  blockedReason: string | null;
+  title: string;
+}>("task.blocked_on_user", async (data) => {
+  if (data.blockedOnUserId === data.userId) return;
+
+  const [project] = await db
+    .select({ workspaceId: projectTable.workspaceId })
+    .from(projectTable)
+    .where(eq(projectTable.id, data.projectId))
+    .limit(1);
+
+  const [requester] = data.userId
+    ? await db
+        .select({ name: userTable.name })
+        .from(userTable)
+        .where(eq(userTable.id, data.userId))
+        .limit(1)
+    : [];
+
+  await createNotification({
+    userId: data.blockedOnUserId,
+    type: "task_blocked_on_you",
+    eventData: {
+      taskTitle: data.title,
+      blockedReason: data.blockedReason,
+      requesterName: requester?.name ?? null,
+      projectId: data.projectId,
+      workspaceId: project?.workspaceId ?? null,
+    },
+    resourceId: data.taskId,
+    resourceType: "task",
+  });
+});
+
+subscribeToEvent<{
+  taskId: string;
+  projectId: string;
+  userId?: string;
+  title: string;
+  addedUserIds: string[];
+}>("task.members_changed", async (data) => {
+  const recipients = data.addedUserIds.filter((id) => id !== data.userId);
+  if (recipients.length === 0) return;
+
+  const [project] = await db
+    .select({ workspaceId: projectTable.workspaceId })
+    .from(projectTable)
+    .where(eq(projectTable.id, data.projectId))
+    .limit(1);
+
+  for (const recipient of recipients) {
+    await createNotification({
+      userId: recipient,
+      type: "task_member_added",
+      eventData: {
+        taskTitle: data.title,
+        projectId: data.projectId,
         workspaceId: project?.workspaceId ?? null,
       },
       resourceId: data.taskId,

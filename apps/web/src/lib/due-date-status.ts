@@ -16,7 +16,7 @@ export function isTaskCompleted(
   if (columns?.length) {
     return columns.find((column) => column.slug === status)?.isFinal ?? false;
   }
-  return status === "done" || status === "archived";
+  return status === "done" || status === "archived" || status === "cancelled";
 }
 
 export function getDueDateStatus(

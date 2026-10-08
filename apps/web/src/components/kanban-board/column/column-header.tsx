@@ -1,9 +1,8 @@
-import { produce } from "immer";
 import { Archive, Plus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import CreateTaskModal from "@/components/shared/modals/create-task-modal";
-import { useUpdateTask } from "@/hooks/mutations/task/use-update-task";
+import { useArchiveCompleted } from "@/hooks/mutations/task/use-archive-completed";
 import { useWorkspacePermission } from "@/hooks/use-workspace-permission";
 import { getColumnIcon } from "@/lib/column";
 import { toast } from "@/lib/toast";
@@ -21,8 +20,8 @@ export function ColumnHeader({
   variant = "project",
 }: ColumnHeaderProps) {
   const { t } = useTranslation();
-  const { project, setProject } = useProjectStore();
-  const { mutate: updateTask } = useUpdateTask();
+  const { project } = useProjectStore();
+  const { mutateAsync: archiveCompleted } = useArchiveCompleted();
   const { canUpdateTasks, canCreateTasks } = useWorkspacePermission();
   const canTask = canUpdateTasks();
   const canCreate = canCreateTasks();
@@ -30,28 +29,22 @@ export function ColumnHeader({
   const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
 
-  const handleConfirmArchive = () => {
+  const handleConfirmArchive = async () => {
     if (!column.isFinal || !project) return;
-
-    const updatedProject = produce(project, (draft) => {
-      const archivedColumn = draft?.columns?.find(
-        (col) => col.id === column.id,
-      );
-      if (!archivedColumn) return;
-
-      for (const task of archivedColumn.tasks) {
-        updateTask({
-          ...task,
-          status: "archived",
-        });
-      }
-
-      archivedColumn.tasks = [];
-    });
-
-    setProject(updatedProject);
-    toast.success(t("tasks:archive.success", { count: column.tasks.length }));
     setIsArchiveModalOpen(false);
+
+    try {
+      const { archivedCount } = await archiveCompleted(project.id);
+      toast.success(
+        t("tasks:archiveCompleted.success", { count: archivedCount }),
+      );
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : t("tasks:archiveCompleted.error"),
+      );
+    }
   };
 
   return (
@@ -76,10 +69,11 @@ export function ColumnHeader({
             <button
               type="button"
               onClick={() => setIsArchiveModalOpen(true)}
-              className="flex items-center rounded-md px-2 py-1 text-left text-muted-foreground transition-colors hover:bg-accent/50"
-              title={t("tasks:listView.archiveAllTooltip")}
+              className="flex items-center gap-1.5 rounded-md px-2 py-1 text-left text-xs font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+              title={t("tasks:archiveCompleted.tooltip")}
             >
-              <Archive className="w-4 h-4 text-muted-foreground" />
+              <Archive className="w-4 h-4" />
+              <span>{t("tasks:archiveCompleted.action")}</span>
             </button>
           )}
         {variant !== "personal" && canCreate && (

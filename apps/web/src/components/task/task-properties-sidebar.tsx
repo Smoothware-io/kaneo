@@ -6,6 +6,7 @@ import {
   Copy,
   GitBranch,
   Plus,
+  Users,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -18,6 +19,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { BLOCKED_STATUS } from "@/constants/task-workflow";
+import { useUpdateTaskStatus } from "@/hooks/mutations/task/use-update-task-status";
 import { useGetColumns } from "@/hooks/queries/column/use-get-columns";
 import useGetGiteaIntegration from "@/hooks/queries/gitea-integration/use-get-gitea-integration";
 import useGetGithubIntegration from "@/hooks/queries/github-integration/use-get-github-integration";
@@ -27,6 +30,7 @@ import useGetProject from "@/hooks/queries/project/use-get-project";
 import useGetProjects from "@/hooks/queries/project/use-get-projects";
 import useGetTask from "@/hooks/queries/task/use-get-task";
 import { useGetActiveWorkspaceUsers } from "@/hooks/queries/workspace-users/use-get-active-workspace-users";
+import { useWorkspacePermission } from "@/hooks/use-workspace-permission";
 import { cn } from "@/lib/cn";
 import { getColumnIcon } from "@/lib/column";
 import {
@@ -39,10 +43,13 @@ import { getInitials } from "@/lib/get-initials";
 import { getPriorityLabel, getStatusDisplayLabel } from "@/lib/i18n/domain";
 import { resolveLabelColor } from "@/lib/label-color";
 import { getPriorityIcon } from "@/lib/priority";
+import { editBlockedDetails, toastTaskUpdateError } from "@/lib/task-reason";
 import { toast } from "@/lib/toast";
+import { BlockedTaskNote } from "./blocked-task-note";
 import TaskAssigneePopover from "./task-assignee-popover";
 import TaskDueDatePopover from "./task-due-date-popover";
 import TaskLabelsPopover from "./task-labels-popover";
+import TaskMembersPopover from "./task-members-popover";
 import TaskMovePopover from "./task-move-popover";
 import TaskPriorityPopover from "./task-priority-popover";
 import TaskStartDatePopover from "./task-start-date-popover";
@@ -119,6 +126,72 @@ export default function TaskPropertiesSidebar({
   const assignee = workspaceUsers?.members?.find(
     (member) => member.userId === task?.userId,
   );
+
+  const { mutateAsync: updateTaskStatus } = useUpdateTaskStatus();
+  const { canUpdateTasks } = useWorkspacePermission();
+  const blockedOnName = workspaceUsers?.members?.find(
+    (member) => member.userId === task?.blockedOnUserId,
+  )?.user?.name;
+
+  const handleEditBlocked = async () => {
+    if (!task) return;
+    try {
+      await updateTaskStatus(await editBlockedDetails(task));
+    } catch (error) {
+      toastTaskUpdateError(error, t("tasks:popover.status.updateError"));
+    }
+  };
+
+  const memberNames = (task?.memberIds ?? [])
+    .map(
+      (id) =>
+        workspaceUsers?.members?.find((member) => member.userId === id)?.user
+          ?.name,
+    )
+    .filter(Boolean);
+
+  const membersButton = task ? (
+    <TaskMembersPopover task={task} workspaceId={workspaceId}>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="justify-start h-7 px-1.5 gap-1.5"
+        title={t("tasks:popover.members.label")}
+      >
+        <Users className="w-3.5 h-3.5 text-muted-foreground" />
+        <span
+          className={cn(
+            "text-xs font-semibold truncate max-w-[160px]",
+            memberNames.length === 0 && "text-muted-foreground",
+          )}
+        >
+          {memberNames.length > 0
+            ? memberNames.join(", ")
+            : t("tasks:popover.members.none")}
+        </span>
+      </Button>
+    </TaskMembersPopover>
+  ) : null;
+
+  const blockedSection =
+    task?.status === BLOCKED_STATUS && task.blockedReason ? (
+      <div className="flex flex-col gap-1.5 px-2 pb-2">
+        <BlockedTaskNote
+          reason={task.blockedReason}
+          blockedOnName={blockedOnName}
+        />
+        {canUpdateTasks() && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="self-start h-7 px-1.5 text-xs"
+            onClick={handleEditBlocked}
+          >
+            {t("tasks:blocked.edit")}
+          </Button>
+        )}
+      </div>
+    ) : null;
 
   const handleCopyTaskLink = () => {
     navigator.clipboard.writeText(
@@ -236,6 +309,7 @@ export default function TaskPropertiesSidebar({
                     variant="ghost"
                     size="sm"
                     className="justify-start h-7 px-1.5 gap-1.5"
+                    title={t("tasks:popover.members.responsibleLabel")}
                   >
                     {task.userId ? (
                       <Avatar className="h-[16px] w-[16px]">
@@ -265,6 +339,7 @@ export default function TaskPropertiesSidebar({
                   </Button>
                 </TaskAssigneePopover>
               )}
+              {membersButton}
               {task && (
                 <TaskStartDatePopover task={task}>
                   <Button
@@ -328,6 +403,7 @@ export default function TaskPropertiesSidebar({
                 </TaskDueDatePopover>
               )}
             </div>
+            {blockedSection}
           </div>
         )}
 
@@ -427,6 +503,7 @@ export default function TaskPropertiesSidebar({
                       variant="ghost"
                       size="sm"
                       className="justify-start h-7 px-1.5 gap-1.5"
+                      title={t("tasks:popover.members.responsibleLabel")}
                     >
                       {task.userId ? (
                         <Avatar className="h-[16px] w-[16px]">
@@ -456,6 +533,7 @@ export default function TaskPropertiesSidebar({
                     </Button>
                   </TaskAssigneePopover>
                 )}
+                {membersButton}
                 {task && (
                   <TaskStartDatePopover task={task}>
                     <Button
@@ -519,6 +597,7 @@ export default function TaskPropertiesSidebar({
                   </TaskDueDatePopover>
                 )}
               </div>
+              {blockedSection}
             </div>
 
             {/* Desktop: Title + stacked properties */}
@@ -620,6 +699,7 @@ export default function TaskPropertiesSidebar({
                       variant="ghost"
                       size="sm"
                       className="justify-start h-7 px-1.5 gap-1.5 w-full"
+                      title={t("tasks:popover.members.responsibleLabel")}
                     >
                       {task.userId ? (
                         <Avatar className="h-[16px] w-[16px]">
@@ -649,6 +729,7 @@ export default function TaskPropertiesSidebar({
                     </Button>
                   </TaskAssigneePopover>
                 )}
+                {membersButton}
                 {task && (
                   <TaskStartDatePopover task={task}>
                     <Button

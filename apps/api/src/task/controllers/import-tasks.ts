@@ -9,6 +9,14 @@ import {
   coerceStatus,
   getValidTaskStatuses,
 } from "../validate-task-fields";
+import {
+  ARCHIVED_STATUS,
+  assertInProgressCapacity,
+  BLOCKED_STATUS,
+  CANCELLED_STATUS,
+  entersInProgressFor,
+  MAX_BLOCKED_REASON_LENGTH,
+} from "../workflow-guards";
 import { claimTaskNumber } from "./claim-task-numbers";
 
 export type ImportTask = {
@@ -19,6 +27,8 @@ export type ImportTask = {
   startDate?: string | null;
   dueDate?: string | null;
   userId?: string | null;
+  blockedReason?: string | null;
+  cancelReason?: string | null;
 };
 
 async function importTasks(
@@ -66,10 +76,24 @@ async function importTasks(
     }
 
     try {
-      const { status, warning: statusWarning } = coerceStatus(
-        taskData.status,
-        validStatuses,
-      );
+      const coerced = coerceStatus(taskData.status, validStatuses);
+      const blockedReason =
+        taskData.blockedReason?.trim().slice(0, MAX_BLOCKED_REASON_LENGTH) ||
+        null;
+      const cancelReason =
+        taskData.cancelReason?.trim().slice(0, MAX_BLOCKED_REASON_LENGTH) ||
+        null;
+      // A blocked or cancelled task without its reason would break the
+      // status contract, so it lands in planned instead.
+      const missingReason =
+        (coerced.status === BLOCKED_STATUS && !blockedReason) ||
+        (coerced.status === CANCELLED_STATUS && !cancelReason);
+      const { status, warning: statusWarning } = missingReason
+        ? {
+            status: "planned",
+            warning: `Status "${coerced.status}" needs a reason and was mapped to "planned"`,
+          }
+        : coerced;
       const { priority, warning: priorityWarning } = coercePriority(
         taskData.priority || "low",
       );
@@ -83,6 +107,16 @@ async function importTasks(
       });
 
       const createdTask = await db.transaction(async (tx) => {
+        const startingFor = entersInProgressFor(null, {
+          status,
+          userId: assigneeId,
+        });
+        if (startingFor) {
+          await assertInProgressCapacity(tx, project.workspaceId, [
+            { userId: startingFor },
+          ]);
+        }
+
         const taskNumber = await claimTaskNumber(projectId, tx);
 
         const [task] = await tx
@@ -97,6 +131,9 @@ async function importTasks(
             dueDate: taskData.dueDate ? new Date(taskData.dueDate) : null,
             description: taskData.description || "",
             priority,
+            blockedReason: status === BLOCKED_STATUS ? blockedReason : null,
+            cancelReason: status === CANCELLED_STATUS ? cancelReason : null,
+            archivedAt: status === ARCHIVED_STATUS ? new Date() : null,
             number: taskNumber,
           })
           .returning();
@@ -127,7 +164,8 @@ async function importTasks(
         });
       }
     } catch (error) {
-      if (error instanceof HTTPException) {
+      // A full in-progress slot fails only that row, not the whole import.
+      if (error instanceof HTTPException && error.status !== 409) {
         throw error;
       }
       results.push({

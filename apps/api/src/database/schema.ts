@@ -8,6 +8,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   unique,
@@ -448,6 +449,23 @@ export const taskTable = pgTable(
       onUpdate: "cascade",
     }),
     priority: text("priority").default("low").notNull(),
+    // Only meaningful while the task sits in the "blocked" column.
+    blockedReason: text("blocked_reason"),
+    blockedOnUserId: text("blocked_on_user_id").references(() => userTable.id, {
+      onDelete: "set null",
+      onUpdate: "cascade",
+    }),
+    // Only meaningful while the task is "cancelled".
+    cancelReason: text("cancel_reason"),
+    // When the task was archived, so closed weeks can be grouped later.
+    archivedAt: timestamp("archived_at", { mode: "date" }),
+    // The closed sprint this task was finished in, for sprint history.
+    sprintId: text("sprint_id").references(() => sprintTable.id, {
+      onDelete: "set null",
+      onUpdate: "cascade",
+    }),
+    // How many sprint closes this task survived unfinished.
+    carryOverCount: integer("carry_over_count").notNull().default(0),
     startDate: timestamp("start_date", { mode: "date" }),
     dueDate: timestamp("due_date", { mode: "date" }),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
@@ -461,7 +479,96 @@ export const taskTable = pgTable(
     index("task_dueDate_idx").on(table.dueDate),
     index("task_assigneeId_idx").on(table.userId),
     index("task_columnId_idx").on(table.columnId),
+    index("task_blockedOnUserId_idx").on(table.blockedOnUserId),
+    index("task_sprintId_idx").on(table.sprintId),
     unique("task_project_number_unique").on(table.projectId, table.number),
+  ],
+);
+
+// One closed weekly sprint: closing archives every finished task in the
+// workspace and carries the rest over to the next week.
+export const sprintTable = pgTable(
+  "sprint",
+  {
+    id: text("id")
+      .$defaultFn(() => createId())
+      .primaryKey(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaceTable.id, {
+        onDelete: "cascade",
+        onUpdate: "cascade",
+      }),
+    weekYear: integer("week_year").notNull(),
+    week: integer("week").notNull(),
+    closedAt: timestamp("closed_at", { mode: "date" }).defaultNow().notNull(),
+    closedById: text("closed_by_id").references(() => userTable.id, {
+      onDelete: "set null",
+      onUpdate: "cascade",
+    }),
+    completedCount: integer("completed_count").notNull().default(0),
+    carriedOverCount: integer("carried_over_count").notNull().default(0),
+  },
+  (table) => [
+    index("sprint_workspaceId_closedAt_idx").on(
+      table.workspaceId,
+      table.closedAt,
+    ),
+  ],
+);
+
+// Team members working on a task, next to the single responsible assignee.
+export const taskMemberTable = pgTable(
+  "task_member",
+  {
+    taskId: text("task_id")
+      .notNull()
+      .references(() => taskTable.id, {
+        onDelete: "cascade",
+        onUpdate: "cascade",
+      }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => userTable.id, {
+        onDelete: "cascade",
+        onUpdate: "cascade",
+      }),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.taskId, table.userId] }),
+    index("task_member_userId_idx").on(table.userId),
+  ],
+);
+
+// Survives the task itself so a deletion and its reason stay traceable.
+export const taskDeletionTable = pgTable(
+  "task_deletion",
+  {
+    id: text("id")
+      .$defaultFn(() => createId())
+      .primaryKey(),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projectTable.id, {
+        onDelete: "cascade",
+        onUpdate: "cascade",
+      }),
+    taskId: text("task_id").notNull(),
+    taskNumber: integer("task_number"),
+    title: text("title").notNull(),
+    reason: text("reason").notNull(),
+    deletedById: text("deleted_by_id").references(() => userTable.id, {
+      onDelete: "set null",
+      onUpdate: "cascade",
+    }),
+    deletedAt: timestamp("deleted_at", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("task_deletion_projectId_deletedAt_idx").on(
+      table.projectId,
+      table.deletedAt,
+    ),
   ],
 );
 

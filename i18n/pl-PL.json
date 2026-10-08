@@ -399,7 +399,8 @@
 			"invitations": "Zaproszenia",
 			"more": "Więcej",
 			"backToBoard": "Wróć do tablicy",
-			"myTasks": "My Tasks"
+			"myTasks": "My Tasks",
+			"sprint": "Sprint"
 		},
 		"projectList": {
 			"viewProject": "Zobacz projekt",
@@ -548,6 +549,14 @@
 				"title": "Rozpoczęto śledzenie czasu",
 				"contentWithTask": "Rozpoczęto śledzenie czasu dla zadania: {{taskTitle}}",
 				"contentWithoutTask": "Rozpoczęto śledzenie czasu dla zadania"
+			},
+			"task_blocked_on_you": {
+				"content": "{{taskTitle}} is blocked: {{blockedReason}}",
+				"title": "A task is waiting on you"
+			},
+			"task_member_added": {
+				"content": "You were added as a team member on: {{taskTitle}}",
+				"title": "Added to a task"
 			}
 		}
 	},
@@ -2237,8 +2246,15 @@
 			"plan": "Zaplanuj",
 			"sections": {
 				"archived": "Zarchiwizowane",
-				"planned": "Zaplanowane"
-			}
+				"planned": "Zaplanowane",
+				"cancelled": "Cancelled",
+				"deleted": "Deleted"
+			},
+			"deletedBy": "Deleted by {{name}} on {{date}}",
+			"noDeletedTasks": "No deleted tasks",
+			"unknownUser": "a former member",
+			"weekLabel": "Week {{week}} · {{start}} – {{end}}",
+			"weekUnknown": "Earlier"
 		},
 		"boardFilters": {
 			"allAssignees": "Wszystkie przypisane osoby",
@@ -2313,7 +2329,17 @@
 			"description": "Zadanie i wszystkie jego dane zostaną trwale usunięte. Tej operacji nie można cofnąć.",
 			"error": "Nie udało się usunąć zadania",
 			"success": "Zadanie usunięto pomyślnie",
-			"title": "Usunąć zadanie?"
+			"title": "Usunąć zadanie?",
+			"draftDiscardedReason": "Draft discarded before the task was created",
+			"reasonDialog": {
+				"bulkDescription_few": "Deleting {{count}} tasks removes them permanently. Add a reason; it is kept in the project's deletion log.",
+				"bulkDescription_many": "Deleting {{count}} tasks removes them permanently. Add a reason; it is kept in the project's deletion log.",
+				"bulkDescription_one": "Deleting {{count}} task removes it permanently. Add a reason; it is kept in the project's deletion log.",
+				"bulkDescription_other": "Deleting {{count}} tasks removes them permanently. Add a reason; it is kept in the project's deletion log.",
+				"description": "Deleting \"{{title}}\" removes it permanently. Add a reason; it is kept in the project's deletion log.",
+				"reasonLabel": "Reason for deleting",
+				"reasonPlaceholder": "Why is this task being deleted?"
+			}
 		},
 		"detail": {
 			"activity": "Aktywność",
@@ -2551,6 +2577,14 @@
 			},
 			"status": {
 				"updateError": "Nie udało się zaktualizować statusu zadania"
+			},
+			"members": {
+				"cardTooltip": "Team members: {{names}}",
+				"label": "Team members",
+				"none": "No team members",
+				"responsible": "Responsible",
+				"responsibleLabel": "Responsible",
+				"updateError": "Failed to update team members"
 			}
 		},
 		"pr": {
@@ -2620,7 +2654,9 @@
 			"in-review": "Do przeglądu",
 			"label": "Status",
 			"planned": "Zaplanowane",
-			"to-do": "Do zrobienia"
+			"to-do": "Do zrobienia",
+			"blocked": "Blocked",
+			"cancelled": "Cancelled"
 		},
 		"subtasks": {
 			"addAction": "Dodaj",
@@ -2665,6 +2701,49 @@
 				"title": "No tasks assigned to you"
 			},
 			"loading": "Loading your tasks…"
+		},
+		"blocked": {
+			"dialog": {
+				"description": "Add a reason before moving \"{{title}}\" to Blocked.",
+				"nobody": "Nobody specific",
+				"reasonLabel": "Reason",
+				"reasonPlaceholder": "What is stopping this task from moving forward?",
+				"submit": "Mark as blocked",
+				"title": "Why is this task blocked?",
+				"userHint": "They'll get a notification that the task is waiting on them.",
+				"userLabel": "Who do you need to continue? (optional)"
+			},
+			"edit": "Edit blocked reason",
+			"label": "Blocked",
+			"waitingOn": "Waiting on {{name}}"
+		},
+		"cancel": {
+			"action": "Cancel task",
+			"dialog": {
+				"description": "\"{{title}}\" leaves the board and moves to Cancelled in the backlog.",
+				"reasonLabel": "Reason for cancelling",
+				"reasonPlaceholder": "Why is this task no longer needed?",
+				"submit": "Cancel task",
+				"title": "Cancel this task?"
+			},
+			"error": "Failed to cancel task",
+			"reasonInline": "Cancelled: {{reason}}",
+			"success": "Task cancelled"
+		},
+		"archiveCompleted": {
+			"action": "Archive",
+			"confirm": "Archive",
+			"description_few": "{{count}} completed tasks leave the board and move to Archived in the backlog. To close the week for every project, use the Sprint board.",
+			"description_many": "{{count}} completed tasks leave the board and move to Archived in the backlog. To close the week for every project, use the Sprint board.",
+			"description_one": "{{count}} completed task leaves the board and moves to Archived in the backlog. To close the week for every project, use the Sprint board.",
+			"description_other": "{{count}} completed tasks leave the board and move to Archived in the backlog. To close the week for every project, use the Sprint board.",
+			"error": "Failed to archive completed tasks",
+			"success_few": "{{count}} tasks archived",
+			"success_many": "{{count}} tasks archived",
+			"success_one": "{{count}} task archived",
+			"success_other": "{{count}} tasks archived",
+			"title": "Archive completed tasks",
+			"tooltip": "Archive all completed tasks in this project"
 		}
 	},
 	"press": {
@@ -2876,5 +2955,46 @@
 			"startLink": "Start and verify the services",
 			"startLinkDescription": "Start the stack, inspect its status, and check that the application is available."
 		}
+	},
+	"sprint": {
+		"carriedOverBadge": "{{count}}×",
+		"carriedOverTooltip_few": "Carried over {{count}} times",
+		"carriedOverTooltip_many": "Carried over {{count}} times",
+		"carriedOverTooltip_one": "Carried over {{count}} time",
+		"carriedOverTooltip_other": "Carried over {{count}} times",
+		"close": {
+			"action": "Close sprint",
+			"confirm": "Close sprint",
+			"description": "{{finished}} finished tasks across all projects are archived under this week. {{open}} unfinished tasks stay on the board and carry over to next week.",
+			"error": "Failed to close the sprint",
+			"success": "Week {{week}} closed: {{completed}} done, {{carried}} carried over",
+			"title": "Close week {{week}}?"
+		},
+		"empty": {
+			"description": "Open tasks from every active project show up here.",
+			"title": "Nothing in this sprint"
+		},
+		"filters": {
+			"allPeople": "Everyone",
+			"allProjects": "All projects",
+			"person": "Filter by person",
+			"project": "Filter by project",
+			"unassigned": "Unassigned"
+		},
+		"firstSprint": "No sprint closed yet",
+		"history": {
+			"closedBy": "Closed by {{name}} on {{date}}",
+			"counts": "{{completed}} done · {{carried}} carried over",
+			"description": "Every closed week and what got finished in it.",
+			"empty": "No sprints have been closed yet.",
+			"noTasks": "No tasks were finished in this sprint.",
+			"open": "History",
+			"title": "Sprint history",
+			"unknown": "a former member"
+		},
+		"loading": "Loading the sprint…",
+		"since": "Since the last close on {{date}}",
+		"summary": "{{open}} open · {{finished}} done",
+		"weekLabel": "Week {{week}}, {{year}}"
 	}
 }

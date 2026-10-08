@@ -33,6 +33,7 @@ import {
   validateDateRange,
 } from "../utils/validate-dates";
 import { workspaceAccess } from "../utils/workspace-access-middleware";
+import archiveCompleted from "./controllers/archive-completed";
 import bulkUpdateTasks from "./controllers/bulk-update-tasks";
 import createTask from "./controllers/create-task";
 import deleteTask from "./controllers/delete-task";
@@ -40,6 +41,7 @@ import duplicateTask from "./controllers/duplicate-task";
 import exportTasks from "./controllers/export-tasks";
 import getMyTasks from "./controllers/get-my-tasks";
 import getTask from "./controllers/get-task";
+import getTaskDeletions from "./controllers/get-task-deletions";
 import getTasks from "./controllers/get-tasks";
 import importTasks from "./controllers/import-tasks";
 import moveTask from "./controllers/move-task";
@@ -52,6 +54,7 @@ import updateTask from "./controllers/update-task";
 import updateTaskAssignee from "./controllers/update-task-assignee";
 import updateTaskDescription from "./controllers/update-task-description";
 import updateTaskDueDate from "./controllers/update-task-due-date";
+import updateTaskMembers from "./controllers/update-task-members";
 import updateTaskPriority from "./controllers/update-task-priority";
 import updateTaskStatus from "./controllers/update-task-status";
 import updateTaskTitle from "./controllers/update-task-title";
@@ -60,6 +63,7 @@ import {
   getDescriptionPage,
 } from "./description-pages";
 import {
+  archiveCompletedSchema,
   boardSchema,
   bulkResultSchema,
   descriptionMatchesSchema,
@@ -67,6 +71,7 @@ import {
   finalizedAssetSchema,
   imageUploadSchema,
   moveTaskResultSchema,
+  taskDeletionListSchema,
   taskExportSchema,
   taskImportResultSchema,
   taskSchema,
@@ -75,6 +80,7 @@ import {
 import {
   bulkUpdateBody,
   createTaskBody,
+  deleteTaskBody,
   descriptionMatchesQuery,
   descriptionPageQuery,
   duplicateTaskBody,
@@ -88,6 +94,7 @@ import {
   updateAssigneeBody,
   updateDescriptionBody,
   updateDueDateBody,
+  updateMembersBody,
   updatePriorityBody,
   updateStatusBody,
   updateTaskBody,
@@ -160,6 +167,9 @@ const bulkUpdateTasksRoute = createRoute({
       "No workspace access, or missing the permission the operation needs",
     ),
     404: errorResponse("No tasks found"),
+    409: errorResponse(
+      "The assignee already has the maximum number of tasks in progress",
+    ),
   },
 });
 
@@ -188,6 +198,9 @@ const createTaskRoute = createRoute({
     400: errorResponse("Invalid body, or unknown project"),
     403: errorResponse(
       "No workspace access, or missing task:create permission",
+    ),
+    409: errorResponse(
+      "The assignee already has the maximum number of tasks in progress",
     ),
   },
 });
@@ -273,6 +286,9 @@ const moveTaskRoute = createRoute({
       "No workspace access, or missing task:update permission",
     ),
     404: errorResponse("Task or destination project not found"),
+    409: errorResponse(
+      "The assignee already has the maximum number of tasks in progress",
+    ),
   },
 });
 
@@ -302,6 +318,9 @@ const updateTaskRoute = createRoute({
     400: errorResponse("Invalid body, or unknown task"),
     403: errorResponse(
       "No workspace access, or missing task:update or task:assign permission",
+    ),
+    409: errorResponse(
+      "The assignee already has the maximum number of tasks in progress",
     ),
   },
 });
@@ -361,12 +380,18 @@ const deleteTaskRoute = createRoute({
   tags: ["Tasks"],
   summary: "Delete task",
   description:
-    "Permanently delete a task and its comments, labels, and time entries.",
+    "Permanently delete a task and its comments, labels, and time entries. The reason is kept, with the title and who deleted it, in the project's deletion log.",
   middleware: [
     workspaceAccess.fromTask(),
     requireWorkspacePermission({ task: ["delete"] }),
   ] as const,
-  request: { params: taskParam },
+  request: {
+    params: taskParam,
+    body: {
+      required: true,
+      content: { "application/json": { schema: deleteTaskBody } },
+    },
+  },
   responses: {
     200: jsonResponse("The deleted task", taskSchema),
     400: errorResponse(
@@ -384,7 +409,8 @@ const updateTaskStatusRoute = createRoute({
   path: "/status/{id}",
   tags: ["Tasks"],
   summary: "Update task status",
-  description: "Move a task to another column in the same project.",
+  description:
+    "Move a task to another column in the same project. Moving into `blocked` requires `blockedReason`; moving into `in-progress` fails with 409 when the assignee already has the maximum number of tasks in progress.",
   middleware: [
     workspaceAccess.fromTask(),
     requireWorkspacePermission({ task: ["update"] }),
@@ -402,6 +428,9 @@ const updateTaskStatusRoute = createRoute({
     400: errorResponse("Invalid body, or unknown task"),
     403: errorResponse(
       "No workspace access, or missing task:update permission",
+    ),
+    409: errorResponse(
+      "The assignee already has the maximum number of tasks in progress",
     ),
   },
 });
@@ -461,6 +490,9 @@ const updateTaskAssigneeRoute = createRoute({
       "No workspace access, or missing task:assign permission",
     ),
     404: errorResponse("Assignee is not a member of the workspace"),
+    409: errorResponse(
+      "The assignee already has the maximum number of tasks in progress",
+    ),
   },
 });
 
@@ -644,6 +676,74 @@ const descriptionMatchesRoute = createRoute({
   },
 });
 
+const updateTaskMembersRoute = createRoute({
+  method: "put",
+  operationId: "updateTaskMembers",
+  path: "/members/{id}",
+  tags: ["Tasks"],
+  summary: "Update task team members",
+  description:
+    "Replace the team members working on a task. The responsible person stays the assignee set through the assignee route.",
+  middleware: [
+    workspaceAccess.fromTask(),
+    requireWorkspacePermission({ task: ["assign"] }),
+    requireEntitlement,
+  ] as const,
+  request: {
+    params: taskParam,
+    body: {
+      required: true,
+      content: { "application/json": { schema: updateMembersBody } },
+    },
+  },
+  responses: {
+    200: jsonResponse("The updated task", taskSchema),
+    400: errorResponse("Invalid body, or too many team members"),
+    403: errorResponse(
+      "No workspace access, missing task:assign permission, or a member outside the workspace",
+    ),
+    404: errorResponse("Task not found"),
+  },
+});
+
+const archiveCompletedRoute = createRoute({
+  method: "post",
+  operationId: "archiveCompletedTasks",
+  path: "/archive-completed/{projectId}",
+  tags: ["Tasks"],
+  summary: "Archive completed tasks",
+  description:
+    "Archive every task in the project's final columns. Archived tasks leave the board and stay listed in the board's `archivedTasks`, with `archivedAt` for grouping by week.",
+  middleware: [
+    workspaceAccess.fromProject("projectId"),
+    requireWorkspacePermission({ task: ["update"] }),
+    requireEntitlement,
+  ] as const,
+  request: { params: projectIdParam },
+  responses: {
+    200: jsonResponse("How many tasks were archived", archiveCompletedSchema),
+    403: errorResponse(
+      "No workspace access, or missing task:update permission",
+    ),
+  },
+});
+
+const listTaskDeletionsRoute = createRoute({
+  method: "get",
+  operationId: "listTaskDeletions",
+  path: "/deletions/{projectId}",
+  tags: ["Tasks"],
+  summary: "List deleted tasks",
+  description:
+    "The project's most recent task deletions (up to 200), with the reason and who deleted each task.",
+  middleware: [workspaceAccess.fromProject("projectId")] as const,
+  request: { params: projectIdParam },
+  responses: {
+    200: jsonResponse("Deleted tasks, newest first", taskDeletionListSchema),
+    403: errorResponse("No access to the project's workspace"),
+  },
+});
+
 const task = apiRouter<BaseVariables & { workspaceId: string }>()
   .openapi(descriptionPageRoute, async (c) =>
     c.json(
@@ -683,7 +783,7 @@ const task = apiRouter<BaseVariables & { workspaceId: string }>()
     return c.json(board, 200);
   })
   .openapi(bulkUpdateTasksRoute, async (c) => {
-    const { taskIds, operation, value } = c.req.valid("json");
+    const { taskIds, operation, value, reason } = c.req.valid("json");
     const userId = c.get("userId");
 
     if (!userId) {
@@ -705,6 +805,7 @@ const task = apiRouter<BaseVariables & { workspaceId: string }>()
       operation,
       value,
       userId,
+      reason,
     });
 
     return c.json(result, 200);
@@ -720,6 +821,9 @@ const task = apiRouter<BaseVariables & { workspaceId: string }>()
       status,
       userId,
       customFields,
+      blockedReason,
+      blockedOnUserId,
+      cancelReason,
     } = c.req.valid("json");
 
     const parsedStartDate =
@@ -744,6 +848,7 @@ const task = apiRouter<BaseVariables & { workspaceId: string }>()
       priority,
       status,
       customFields,
+      details: { blockedReason, blockedOnUserId, cancelReason },
     });
 
     return c.json(task, 200);
@@ -794,6 +899,9 @@ const task = apiRouter<BaseVariables & { workspaceId: string }>()
       projectId,
       position,
       userId,
+      blockedReason,
+      blockedOnUserId,
+      cancelReason,
     } = c.req.valid("json");
 
     const currentUserId = c.get("userId");
@@ -821,6 +929,7 @@ const task = apiRouter<BaseVariables & { workspaceId: string }>()
       position,
       userId,
       currentUserId,
+      { blockedReason, blockedOnUserId, cancelReason },
     );
 
     return c.json(task, 200);
@@ -844,17 +953,46 @@ const task = apiRouter<BaseVariables & { workspaceId: string }>()
   .openapi(deleteTaskRoute, async (c) => {
     const { id } = c.req.valid("param");
 
+    const { reason } = c.req.valid("json");
     const currentUserId = c.get("userId");
-    const task = await deleteTask(id, currentUserId);
+    const task = await deleteTask(id, currentUserId, reason);
 
     return c.json(task, 200);
   })
+  .openapi(updateTaskMembersRoute, async (c) => {
+    const { id } = c.req.valid("param");
+    const { userIds } = c.req.valid("json");
+    const task = await updateTaskMembers({
+      id,
+      userIds,
+      currentUserId: c.get("userId"),
+    });
+    return c.json(task, 200);
+  })
+  .openapi(archiveCompletedRoute, async (c) => {
+    const { projectId } = c.req.valid("param");
+    const result = await archiveCompleted({
+      projectId,
+      currentUserId: c.get("userId"),
+    });
+    return c.json(result, 200);
+  })
+  .openapi(listTaskDeletionsRoute, async (c) => {
+    const { projectId } = c.req.valid("param");
+    return c.json(await getTaskDeletions(projectId), 200);
+  })
   .openapi(updateTaskStatusRoute, async (c) => {
     const { id } = c.req.valid("param");
-    const { status } = c.req.valid("json");
+    const { status, blockedReason, blockedOnUserId, cancelReason } =
+      c.req.valid("json");
     const currentUserId = c.get("userId");
 
-    const task = await updateTaskStatus({ id, status, currentUserId });
+    const task = await updateTaskStatus({
+      id,
+      status,
+      currentUserId,
+      details: { blockedReason, blockedOnUserId, cancelReason },
+    });
 
     return c.json(task, 200);
   })

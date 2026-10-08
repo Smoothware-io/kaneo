@@ -2,12 +2,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import createTask, {
   type CreateTaskRequest,
 } from "@/fetchers/task/create-task";
+import { requestStatusDetailsForNewTask } from "@/lib/task-reason";
 
 function useCreateTask() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       title,
       description,
       userId,
@@ -17,6 +18,9 @@ function useCreateTask() {
       dueDate,
       priority,
       customFields,
+      blockedReason,
+      blockedOnUserId,
+      cancelReason,
     }: CreateTaskRequest) =>
       createTask(
         title,
@@ -28,6 +32,9 @@ function useCreateTask() {
         dueDate ? new Date(dueDate) : undefined,
         priority,
         customFields,
+        blockedReason || cancelReason
+          ? { blockedReason, blockedOnUserId, cancelReason }
+          : await requestStatusDetailsForNewTask(status, title),
       ),
     onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({

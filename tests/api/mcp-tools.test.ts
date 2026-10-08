@@ -92,11 +92,12 @@ describe("MCP tool catalog", () => {
   });
 
   it("deletes a task", async () => {
-    await call("delete_task", { taskId: "t1" });
+    await call("delete_task", { taskId: "t1", reason: "Duplicate" });
 
     expect(lastRequest()).toMatchObject({
       url: "http://api.test/api/task/t1",
       method: "DELETE",
+      body: { reason: "Duplicate" },
     });
   });
 
@@ -214,7 +215,10 @@ describe("MCP tool catalog", () => {
       Response.json({ message: "Task not found" }, { status: 404 }),
     );
 
-    const result = await call("delete_task", { taskId: "missing" });
+    const result = await call("delete_task", {
+      taskId: "missing",
+      reason: "Duplicate",
+    });
 
     expect(result.isError).toBe(true);
     expect(result.content[0].text).toContain("Task not found");

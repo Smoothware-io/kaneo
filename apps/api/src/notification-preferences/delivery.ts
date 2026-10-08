@@ -123,6 +123,31 @@ function buildDeliveryContent(notification: {
           : "A task was assigned to you in Kaneo.",
       };
     }
+    case "task_member_added": {
+      const taskTitle = getStringValue(notification.eventData, "taskTitle");
+      return {
+        title: "Added to a task",
+        body: taskTitle
+          ? `You were added as a team member on ${taskTitle}.`
+          : "You were added as a team member on a Kaneo task.",
+      };
+    }
+    case "task_blocked_on_you": {
+      const taskTitle = getStringValue(notification.eventData, "taskTitle");
+      const reason = getStringValue(notification.eventData, "blockedReason");
+      const requesterName = getStringValue(
+        notification.eventData,
+        "requesterName",
+      );
+      return {
+        title: requesterName
+          ? `${requesterName} needs you to unblock a task`
+          : "A task is blocked on you",
+        body: taskTitle
+          ? `${taskTitle} is blocked${reason ? `: ${reason}` : "."}`
+          : "A Kaneo task is waiting on you.",
+      };
+    }
     case "time_entry_created": {
       const taskTitle = getStringValue(notification.eventData, "taskTitle");
       return {

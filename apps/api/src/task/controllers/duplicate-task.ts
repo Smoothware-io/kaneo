@@ -21,6 +21,10 @@ import {
   assertRequiredCustomFields,
   assertValidTaskStatus,
 } from "../validate-task-fields";
+import {
+  assertInProgressCapacity,
+  entersInProgressFor,
+} from "../workflow-guards";
 import { claimTaskNumber } from "./claim-task-numbers";
 import { nextTaskPosition } from "./next-task-position";
 
@@ -256,6 +260,13 @@ async function duplicateTask({
 
   try {
     duplicated = await db.transaction(async (tx) => {
+      const startingFor = entersInProgressFor(null, sourceTask);
+      if (startingFor) {
+        await assertInProgressCapacity(tx, project.workspaceId, [
+          { userId: startingFor },
+        ]);
+      }
+
       const taskNumber = await claimTaskNumber(sourceTask.projectId, tx);
       const nextPosition = await nextTaskPosition(
         tx,
@@ -277,6 +288,10 @@ async function duplicateTask({
           dueDate: sourceTask.dueDate,
           description,
           priority: sourceTask.priority,
+          blockedReason: sourceTask.blockedReason,
+          blockedOnUserId: sourceTask.blockedOnUserId,
+          cancelReason: sourceTask.cancelReason,
+          archivedAt: sourceTask.archivedAt,
           number: taskNumber,
           position: nextPosition,
         })

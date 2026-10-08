@@ -1,6 +1,7 @@
 import { client } from "@kaneo/libs";
 import type { InferRequestType } from "hono/client";
 import { HttpError } from "@/lib/http-error";
+import { statusDetailsPayload } from "@/lib/task-reason";
 import type Task from "@/types/task";
 
 type UpdateTaskPriority = InferRequestType<
@@ -26,6 +27,7 @@ async function updateTask(taskId: string, task: Task) {
       dueDate: task.dueDate?.toString(),
       position: task.position ?? 0,
       projectId: task.projectId,
+      ...statusDetailsPayload(task),
     },
   });
 

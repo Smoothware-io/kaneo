@@ -10,6 +10,16 @@
 #   AUTH_SECRET=<openssl rand -hex 32>
 #   POSTGRES_PASSWORD=<strong password>
 # Email + password sign-in (no SMTP) is forced via DISABLE_EMAIL_OTP_SIGN_IN=true.
+#
+# File uploads are optional and off until all of these are set:
+#   COMPOSE_PROFILES=uploads                      (starts the MinIO services)
+#   MINIO_ROOT_PASSWORD=<openssl rand -hex 32>
+#   S3_PUBLIC_ENDPOINT=https://files.kaneo.smoothweb.nl
+# Uploads go straight from the browser to MinIO with a presigned URL, so MinIO
+# needs its own public domain:
+#   Domain:          files.kaneo.smoothweb.nl  ->  service "minio", container port 9000
+# A sub-path on the Kaneo domain does not work: it breaks the S3 signature.
+# The bucket stays private; Kaneo serves files back through /api/asset/:id.
 
 services:
   postgres:
@@ -41,6 +51,15 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
       # Use email + password sign-in instead of SMTP email OTP.
       DISABLE_EMAIL_OTP_SIGN_IN: "true"
+      # Uploads: the browser and the API both reach MinIO via its public URL.
+      # Left empty, Kaneo runs normally with uploads unavailable.
+      S3_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-}
+      S3_BUCKET: ${S3_BUCKET:-kaneo-uploads}
+      S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-kaneo}
+      S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-}
+      S3_REGION: us-east-1
+      S3_FORCE_PATH_STYLE: "true"
+      S3_MAX_IMAGE_UPLOAD_BYTES: ${S3_MAX_UPLOAD_BYTES:-26214400}
     depends_on:
       postgres:
         condition: service_healthy
@@ -55,9 +74,50 @@ services:
       - dokploy-network
       - default
 
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    profiles: ["uploads"]
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-kaneo}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-}
+    volumes:
+      - minio_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dokploy-network
+      - default
+
+  # Creates the private uploads bucket once; safe to re-run on every deploy.
+  minio-init:
+    # The server image ships the mc client, so no second image to pin.
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    profiles: ["uploads"]
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-kaneo}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-}
+      S3_BUCKET: ${S3_BUCKET:-kaneo-uploads}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >-
+        mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"
+        && mc mb --ignore-existing "local/$$S3_BUCKET"
+        && mc anonymous set none "local/$$S3_BUCKET"
+    restart: "no"
+
 networks:
   dokploy-network:
     external: true
 
 volumes:
   postgres_data:
+  minio_data:

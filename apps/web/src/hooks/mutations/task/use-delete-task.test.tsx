@@ -96,8 +96,14 @@ describe("useDeleteTask", () => {
     const { result } = renderHook(() => useDeleteTask(), { wrapper: Wrapper });
 
     await act(async () => {
-      await result.current.mutateAsync(deletedTask.id);
+      await result.current.mutateAsync({
+        id: deletedTask.id,
+        title: deletedTask.title,
+        reason: "Duplicate",
+      });
     });
+
+    expect(deleteTask).toHaveBeenCalledWith(deletedTask.id, "Duplicate");
 
     const cachedProject = queryClient.getQueryData<
       ReturnType<typeof makeProject>
@@ -131,9 +137,13 @@ describe("useDeleteTask", () => {
     const { result } = renderHook(() => useDeleteTask(), { wrapper: Wrapper });
 
     await act(async () => {
-      await expect(result.current.mutateAsync(task.id)).rejects.toThrow(
-        "Delete failed",
-      );
+      await expect(
+        result.current.mutateAsync({
+          id: task.id,
+          title: task.title,
+          reason: "Duplicate",
+        }),
+      ).rejects.toThrow("Delete failed");
     });
 
     expect(queryClient.getQueryData(["tasks", project.id])).toEqual(project);

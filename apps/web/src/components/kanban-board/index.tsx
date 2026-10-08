@@ -52,7 +52,7 @@ function KanbanBoard({
     clearFocus,
   } = useBulkSelectionStore();
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
-  const { mutate: updateTask } = useUpdateTask();
+  const { mutate: updateTask } = useUpdateTask({ notifyOnError: true });
   const background = useProjectBackground({
     backgroundVersion: project.backgroundVersion,
     projectId: project.id,
@@ -186,8 +186,12 @@ function KanbanBoard({
       });
 
       setProject(personalProject);
+      // The cross-project boards (My Tasks, Sprint) refetch their own query.
       queryClient.invalidateQueries({
         queryKey: ["my-tasks", project.workspaceId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["sprint-board", project.workspaceId],
       });
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       return;

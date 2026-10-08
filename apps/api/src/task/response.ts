@@ -2,6 +2,29 @@ import { nullableResponseTimestamp, responseTimestamp, z } from "../openapi";
 
 const priorityDescription = "One of: no-priority, low, medium, high, urgent.";
 
+const blockedReason = z.string().nullable().openapi({
+  description: "Why the task is blocked. Only set while status is `blocked`.",
+});
+const blockedOnUserId = z.string().nullable().openapi({
+  description:
+    "Workspace member needed to unblock the task. Only set while status is `blocked`.",
+});
+const cancelReason = z.string().nullable().openapi({
+  description:
+    "Why the task was cancelled. Only set while status is `cancelled`.",
+});
+const archivedAt = nullableResponseTimestamp.openapi({
+  description:
+    "When the task was archived. Only set while status is `archived`.",
+});
+const carryOverCount = z.number().int().nonnegative().openapi({
+  description: "How many sprint closes the task was carried over unfinished.",
+});
+const memberIds = z.array(z.string()).openapi({
+  description:
+    "Team members working on the task, next to the responsible assignee in `userId`.",
+});
+
 export const taskSchema = z
   .object({
     id: z.string(),
@@ -26,6 +49,12 @@ export const taskSchema = z
       description: "The slug of the column the task sits in.",
     }),
     priority: z.string().openapi({ description: priorityDescription }),
+    blockedReason: blockedReason.optional(),
+    blockedOnUserId: blockedOnUserId.optional(),
+    cancelReason: cancelReason.optional(),
+    archivedAt: archivedAt.optional(),
+    carryOverCount: carryOverCount.optional(),
+    memberIds: memberIds.optional(),
     startDate: nullableResponseTimestamp,
     dueDate: nullableResponseTimestamp,
     createdAt: responseTimestamp,
@@ -76,6 +105,12 @@ export const boardTaskSchema = z
     }),
     status: z.string(),
     priority: z.string().openapi({ description: priorityDescription }),
+    blockedReason,
+    blockedOnUserId,
+    cancelReason,
+    archivedAt,
+    carryOverCount,
+    memberIds,
     startDate: nullableResponseTimestamp,
     dueDate: nullableResponseTimestamp,
     position: z.number().nullable(),
@@ -130,6 +165,9 @@ export const boardSchema = z
         columns: z.array(boardColumnSchema),
         archivedTasks: z.array(boardTaskSchema),
         plannedTasks: z.array(boardTaskSchema),
+        cancelledTasks: z.array(boardTaskSchema).openapi({
+          description: "Cancelled tasks, kept off the board with their reason.",
+        }),
       })
       .openapi("Board"),
     pagination: z
@@ -246,3 +284,22 @@ export const descriptionPageSchema = z
 export const descriptionMatchesSchema = z
   .object({ ids: z.array(z.string()), nextCursor: z.string().nullable() })
   .openapi("TaskDescriptionMatches");
+
+export const archiveCompletedSchema = z
+  .object({ archivedCount: z.number().int().nonnegative() })
+  .openapi("ArchiveCompletedResult");
+
+export const taskDeletionSchema = z
+  .object({
+    id: z.string(),
+    taskId: z.string(),
+    taskNumber: z.number().nullable(),
+    title: z.string(),
+    reason: z.string(),
+    deletedById: z.string().nullable(),
+    deletedByName: z.string().nullable(),
+    deletedAt: responseTimestamp,
+  })
+  .openapi("TaskDeletion");
+
+export const taskDeletionListSchema = z.array(taskDeletionSchema);

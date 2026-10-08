@@ -14,7 +14,7 @@ import { useNumberedShortcuts } from "@/hooks/use-numbered-shortcuts";
 import { useWorkspacePermission } from "@/hooks/use-workspace-permission";
 import { getColumnIcon } from "@/lib/column";
 import { getStatusDisplayLabel } from "@/lib/i18n/domain";
-import { toast } from "@/lib/toast";
+import { toastTaskUpdateError } from "@/lib/task-reason";
 import type Task from "@/types/task";
 
 type TaskStatusPopoverProps = {
@@ -52,11 +52,7 @@ export default function TaskStatusPopover({
         });
         setOpen(false);
       } catch (error) {
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : t("tasks:popover.status.updateError"),
-        );
+        toastTaskUpdateError(error, t("tasks:popover.status.updateError"));
       }
     },
     [t, task, updateTaskStatus],

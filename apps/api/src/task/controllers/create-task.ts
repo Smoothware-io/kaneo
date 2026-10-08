@@ -18,6 +18,13 @@ import {
   assertValidTaskStatus,
   isCustomFieldValueEmpty,
 } from "../validate-task-fields";
+import {
+  assertInProgressCapacity,
+  entersInProgressFor,
+  publishBlockedOnUser,
+  resolveStatusDetails,
+  type StatusDetailsInput,
+} from "../workflow-guards";
 import { claimTaskNumber } from "./claim-task-numbers";
 import { nextTaskPosition } from "./next-task-position";
 
@@ -53,6 +60,7 @@ async function createTask({
   description,
   priority,
   customFields,
+  details = {},
 }: {
   projectId: string;
   currentUserId: string;
@@ -64,6 +72,7 @@ async function createTask({
   description?: string;
   priority?: string;
   customFields?: CustomFieldInput[];
+  details?: StatusDetailsInput;
 }) {
   const resolvedStatus = status || "to-do";
   const resolvedPriority = priority || "no-priority";
@@ -106,12 +115,17 @@ async function createTask({
   await assertRequiredCustomFields(projectId, mergedCustomFields);
 
   let assignee: { name: string } | undefined;
+  const workspaceId = await getProjectWorkspaceId(projectId);
+
+  const statusDetails = await resolveStatusDetails({
+    workspaceId,
+    previous: null,
+    nextStatus: resolvedStatus,
+    input: details,
+  });
 
   if (normalizedUserId) {
-    await assertAssignableUser(
-      normalizedUserId,
-      await getProjectWorkspaceId(projectId),
-    );
+    await assertAssignableUser(normalizedUserId, workspaceId);
 
     [assignee] = await db
       .select({ name: userTable.name })
@@ -127,6 +141,16 @@ async function createTask({
   });
 
   const createdTask = await db.transaction(async (tx) => {
+    const startingFor = entersInProgressFor(null, {
+      status: resolvedStatus,
+      userId: normalizedUserId ?? null,
+    });
+    if (startingFor) {
+      await assertInProgressCapacity(tx, workspaceId, [
+        { userId: startingFor },
+      ]);
+    }
+
     const taskNumber = await claimTaskNumber(projectId, tx);
     const nextPosition = await nextTaskPosition(
       tx,
@@ -147,6 +171,7 @@ async function createTask({
         dueDate: dueDate || null,
         description: description || "",
         priority: resolvedPriority,
+        ...statusDetails,
         number: taskNumber,
         position: nextPosition,
       })
@@ -179,6 +204,8 @@ async function createTask({
     type: "created",
     content: null,
   });
+
+  await publishBlockedOnUser(null, createdTask, currentUserId);
 
   return {
     ...createdTask,

@@ -25,6 +25,7 @@ import { Archive, ChevronRight, Flag, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { priorityColorsTaskCard } from "@/constants/priority-colors";
+import { useArchiveCompleted } from "@/hooks/mutations/task/use-archive-completed";
 import { useUpdateTask } from "@/hooks/mutations/task/use-update-task";
 import { useRegisterShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { cn } from "@/lib/cn";
@@ -53,7 +54,8 @@ function ListView({ project, disableDragDrop = false }: ListViewProps) {
     focusedTaskId,
     clearFocus,
   } = useBulkSelectionStore();
-  const { mutate: updateTask } = useUpdateTask();
+  const { mutate: updateTask } = useUpdateTask({ notifyOnError: true });
+  const { mutateAsync: archiveCompleted } = useArchiveCompleted();
   const navigate = useNavigate();
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [overColumnId, setOverColumnId] = useState<string | null>(null);
@@ -251,32 +253,23 @@ function ListView({ project, disableDragDrop = false }: ListViewProps) {
     setIsArchiveModalOpen(true);
   };
 
-  const handleConfirmArchive = () => {
+  const handleConfirmArchive = async () => {
     if (!columnToArchive) return;
-
-    const updatedProject = produce(project, (draft) => {
-      const archivedColumn = draft?.columns?.find(
-        (col) => col.id === columnToArchive.id,
-      );
-      if (!archivedColumn) return;
-
-      for (const task of archivedColumn.tasks) {
-        updateTask({
-          ...task,
-          status: "archived",
-        });
-      }
-
-      archivedColumn.tasks = [];
-    });
-
-    setProject(updatedProject);
-    toast.success(
-      t("tasks:archive.success", { count: columnToArchive.tasks.length }),
-    );
-
     setIsArchiveModalOpen(false);
     setColumnToArchive(null);
+
+    try {
+      const { archivedCount } = await archiveCompleted(project.id);
+      toast.success(
+        t("tasks:archiveCompleted.success", { count: archivedCount }),
+      );
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : t("tasks:archiveCompleted.error"),
+      );
+    }
   };
 
   function ColumnSection({
@@ -342,7 +335,7 @@ function ListView({ project, disableDragDrop = false }: ListViewProps) {
                 type="button"
                 onClick={() => handleArchiveClick(column)}
                 className="p-1 hover:bg-accent rounded text-muted-foreground hover:text-foreground transition-colors"
-                title={t("tasks:listView.archiveAllTooltip")}
+                title={t("tasks:archiveCompleted.tooltip")}
               >
                 <Archive className="w-3 h-3" />
               </button>

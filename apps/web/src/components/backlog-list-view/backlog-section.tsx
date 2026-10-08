@@ -3,11 +3,13 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import { format } from "date-fns";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronRight, type Clock, Plus } from "lucide-react";
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/cn";
+import { groupByWeek, type WeekGroup } from "@/lib/week";
 import type Task from "@/types/task";
 import BacklogTaskRow from "./backlog-task-row";
 
@@ -20,6 +22,7 @@ const BacklogSection = memo(function BacklogSection({
   showDropIndicator,
   onToggle,
   onAddTask,
+  groupByArchiveWeek = false,
 }: {
   sectionId: string;
   title: string;
@@ -29,8 +32,37 @@ const BacklogSection = memo(function BacklogSection({
   showDropIndicator: boolean;
   onToggle: (sectionId: string) => void;
   onAddTask?: () => void;
+  // Archived tasks are listed per week they were closed in, newest first.
+  groupByArchiveWeek?: boolean;
 }) {
   const { t } = useTranslation();
+  const weekGroups = useMemo(
+    () =>
+      groupByArchiveWeek ? groupByWeek(tasks, (task) => task.archivedAt) : null,
+    [groupByArchiveWeek, tasks],
+  );
+  const orderedTasks = weekGroups
+    ? weekGroups.flatMap((group) => group.items)
+    : tasks;
+  const weekLabel = (group: WeekGroup<Task>) =>
+    group.week !== null && group.start && group.end
+      ? t("tasks:backlog.weekLabel", {
+          week: group.week,
+          start: format(group.start, "MMM d"),
+          end: format(group.end, "MMM d, yyyy"),
+        })
+      : t("tasks:backlog.weekUnknown");
+  const renderRow = (task: Task) => (
+    <motion.div
+      key={task.id}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
+    >
+      <BacklogTaskRow task={task} />
+    </motion.div>
+  );
   const { setNodeRef } = useDroppable({
     id: sectionId,
     data: {
@@ -93,20 +125,27 @@ const BacklogSection = memo(function BacklogSection({
           ref={setNodeRef}
           className="bg-card transition-[translate,opacity] duration-150 ease-out starting:-translate-y-1 starting:opacity-0 motion-reduce:starting:translate-y-0"
         >
-          <SortableContext items={tasks} strategy={verticalListSortingStrategy}>
-            <AnimatePresence initial={false} mode="popLayout">
-              {tasks.map((task) => (
-                <motion.div
-                  key={task.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
-                >
-                  <BacklogTaskRow task={task} />
-                </motion.div>
-              ))}
-            </AnimatePresence>
+          <SortableContext
+            items={orderedTasks}
+            strategy={verticalListSortingStrategy}
+          >
+            {weekGroups ? (
+              weekGroups.map((group) => (
+                <div key={group.key}>
+                  <div className="flex items-center justify-between px-4 py-1.5 bg-muted/30 border-b border-border/40 text-xs font-medium text-muted-foreground">
+                    <span>{weekLabel(group)}</span>
+                    <span>{group.items.length}</span>
+                  </div>
+                  <AnimatePresence initial={false} mode="popLayout">
+                    {group.items.map(renderRow)}
+                  </AnimatePresence>
+                </div>
+              ))
+            ) : (
+              <AnimatePresence initial={false} mode="popLayout">
+                {tasks.map(renderRow)}
+              </AnimatePresence>
+            )}
           </SortableContext>
 
           {tasks.length === 0 && (

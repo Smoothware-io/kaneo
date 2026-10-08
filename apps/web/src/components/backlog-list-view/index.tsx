@@ -15,7 +15,7 @@ import {
 import { snapCenterToCursor } from "@dnd-kit/modifiers";
 import { useNavigate } from "@tanstack/react-router";
 import { produce } from "immer";
-import { Archive, Clock, Flag } from "lucide-react";
+import { Archive, Ban, Clock, Flag } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { priorityColorsTaskCard } from "@/constants/priority-colors";
@@ -27,6 +27,7 @@ import useProjectStore from "@/store/project";
 import type { ProjectWithTasks } from "@/types/project";
 import BacklogBulkToolbar from "../bulk-selection/backlog-bulk-toolbar";
 import CreateTaskModal from "../shared/modals/create-task-modal";
+import BacklogDeletedSection from "./backlog-deleted-section";
 import BacklogSection from "./backlog-section";
 
 type BacklogListViewProps = {
@@ -39,7 +40,7 @@ function BacklogListView({
   disableDragDrop = false,
 }: BacklogListViewProps) {
   const { t } = useTranslation();
-  const { mutate: updateTask } = useUpdateTask();
+  const { mutate: updateTask } = useUpdateTask({ notifyOnError: true });
   const setProject = useProjectStore((state) => state.setProject);
   const setAvailableTasks = useBacklogBulkSelectionStore(
     (state) => state.setAvailableTasks,
@@ -57,6 +58,8 @@ function BacklogListView({
   >({
     planned: true,
     archived: true,
+    cancelled: false,
+    deleted: false,
   });
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [activeColumn, setActiveColumn] = useState<string | null>(null);
@@ -332,6 +335,24 @@ function BacklogListView({
             tasks={archivedTasks}
             isExpanded={expandedSections.archived}
             showDropIndicator={activeId !== null && overColumnId === "archived"}
+            onToggle={toggleSection}
+            groupByArchiveWeek
+          />
+
+          <BacklogSection
+            sectionId="cancelled"
+            title={t("tasks:backlog.sections.cancelled")}
+            icon={Ban}
+            tasks={project.cancelledTasks ?? []}
+            isExpanded={expandedSections.cancelled}
+            showDropIndicator={false}
+            onToggle={toggleSection}
+          />
+
+          <BacklogDeletedSection
+            projectId={project.id}
+            projectSlug={project.slug}
+            isExpanded={expandedSections.deleted}
             onToggle={toggleSection}
           />
         </div>

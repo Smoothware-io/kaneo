@@ -1742,7 +1742,8 @@
 			"invitations": "초대",
 			"more": "더 보기",
 			"backToBoard": "보드로 돌아가기",
-			"myTasks": "My Tasks"
+			"myTasks": "My Tasks",
+			"sprint": "Sprint"
 		},
 		"projectList": {
 			"viewProject": "프로젝트 보기",
@@ -1874,6 +1875,14 @@
 			"task_overdue": {
 				"title": "작업 기한 초과",
 				"content": "{{taskTitle}}이(가) 마감일을 지났습니다"
+			},
+			"task_blocked_on_you": {
+				"content": "{{taskTitle}} is blocked: {{blockedReason}}",
+				"title": "A task is waiting on you"
+			},
+			"task_member_added": {
+				"content": "You were added as a team member on: {{taskTitle}}",
+				"title": "Added to a task"
 			}
 		},
 		"reminderLeadTime": {
@@ -2005,7 +2014,9 @@
 			"in-review": "검토 중",
 			"done": "완료",
 			"archived": "보관됨",
-			"planned": "계획됨"
+			"planned": "계획됨",
+			"blocked": "Blocked",
+			"cancelled": "Cancelled"
 		},
 		"priority": {
 			"label": "우선순위",
@@ -2240,6 +2251,14 @@
 					"rose": "로즈",
 					"crimson": "크림슨"
 				}
+			},
+			"members": {
+				"cardTooltip": "Team members: {{names}}",
+				"label": "Team members",
+				"none": "No team members",
+				"responsible": "Responsible",
+				"responsibleLabel": "Responsible",
+				"updateError": "Failed to update team members"
 			}
 		},
 		"backlog": {
@@ -2255,7 +2274,9 @@
 			"addFilter": "필터 추가...",
 			"sections": {
 				"planned": "계획됨",
-				"archived": "보관됨"
+				"archived": "보관됨",
+				"cancelled": "Cancelled",
+				"deleted": "Deleted"
 			},
 			"noTasksInSection": "{{section}} 작업이 없습니다",
 			"filters": {
@@ -2266,7 +2287,12 @@
 				"dueThisWeek": "이번 주 마감",
 				"dueNextWeek": "다음 주 마감",
 				"noDueDate": "마감일 없음"
-			}
+			},
+			"deletedBy": "Deleted by {{name}} on {{date}}",
+			"noDeletedTasks": "No deleted tasks",
+			"unknownUser": "a former member",
+			"weekLabel": "Week {{week}} · {{start}} – {{end}}",
+			"weekUnknown": "Earlier"
 		},
 		"sort": {
 			"label": "정렬",
@@ -2346,7 +2372,14 @@
 			"description": "작업과 모든 데이터가 영구적으로 제거됩니다. 이 작업은 취소할 수 없습니다.",
 			"action": "작업 삭제",
 			"success": "작업이 삭제되었습니다",
-			"error": "작업 삭제에 실패했습니다"
+			"error": "작업 삭제에 실패했습니다",
+			"draftDiscardedReason": "Draft discarded before the task was created",
+			"reasonDialog": {
+				"bulkDescription_other": "Deleting {{count}} tasks removes them permanently. Add a reason; it is kept in the project's deletion log.",
+				"description": "Deleting \"{{title}}\" removes it permanently. Add a reason; it is kept in the project's deletion log.",
+				"reasonLabel": "Reason for deleting",
+				"reasonPlaceholder": "Why is this task being deleted?"
+			}
 		},
 		"duplicate": {
 			"titleSuffix": "{{title}} (사본)",
@@ -2459,6 +2492,43 @@
 				"title": "No tasks assigned to you"
 			},
 			"loading": "Loading your tasks…"
+		},
+		"blocked": {
+			"dialog": {
+				"description": "Add a reason before moving \"{{title}}\" to Blocked.",
+				"nobody": "Nobody specific",
+				"reasonLabel": "Reason",
+				"reasonPlaceholder": "What is stopping this task from moving forward?",
+				"submit": "Mark as blocked",
+				"title": "Why is this task blocked?",
+				"userHint": "They'll get a notification that the task is waiting on them.",
+				"userLabel": "Who do you need to continue? (optional)"
+			},
+			"edit": "Edit blocked reason",
+			"label": "Blocked",
+			"waitingOn": "Waiting on {{name}}"
+		},
+		"cancel": {
+			"action": "Cancel task",
+			"dialog": {
+				"description": "\"{{title}}\" leaves the board and moves to Cancelled in the backlog.",
+				"reasonLabel": "Reason for cancelling",
+				"reasonPlaceholder": "Why is this task no longer needed?",
+				"submit": "Cancel task",
+				"title": "Cancel this task?"
+			},
+			"error": "Failed to cancel task",
+			"reasonInline": "Cancelled: {{reason}}",
+			"success": "Task cancelled"
+		},
+		"archiveCompleted": {
+			"action": "Archive",
+			"confirm": "Archive",
+			"description_other": "{{count}} completed tasks leave the board and move to Archived in the backlog. To close the week for every project, use the Sprint board.",
+			"error": "Failed to archive completed tasks",
+			"success_other": "{{count}} tasks archived",
+			"title": "Archive completed tasks",
+			"tooltip": "Archive all completed tasks in this project"
 		}
 	},
 	"invitations": {
@@ -2849,5 +2919,43 @@
 			"startLink": "Start and verify the services",
 			"startLinkDescription": "Start the stack, inspect its status, and check that the application is available."
 		}
+	},
+	"sprint": {
+		"carriedOverBadge": "{{count}}×",
+		"carriedOverTooltip_other": "Carried over {{count}} times",
+		"close": {
+			"action": "Close sprint",
+			"confirm": "Close sprint",
+			"description": "{{finished}} finished tasks across all projects are archived under this week. {{open}} unfinished tasks stay on the board and carry over to next week.",
+			"error": "Failed to close the sprint",
+			"success": "Week {{week}} closed: {{completed}} done, {{carried}} carried over",
+			"title": "Close week {{week}}?"
+		},
+		"empty": {
+			"description": "Open tasks from every active project show up here.",
+			"title": "Nothing in this sprint"
+		},
+		"filters": {
+			"allPeople": "Everyone",
+			"allProjects": "All projects",
+			"person": "Filter by person",
+			"project": "Filter by project",
+			"unassigned": "Unassigned"
+		},
+		"firstSprint": "No sprint closed yet",
+		"history": {
+			"closedBy": "Closed by {{name}} on {{date}}",
+			"counts": "{{completed}} done · {{carried}} carried over",
+			"description": "Every closed week and what got finished in it.",
+			"empty": "No sprints have been closed yet.",
+			"noTasks": "No tasks were finished in this sprint.",
+			"open": "History",
+			"title": "Sprint history",
+			"unknown": "a former member"
+		},
+		"loading": "Loading the sprint…",
+		"since": "Since the last close on {{date}}",
+		"summary": "{{open}} open · {{finished}} done",
+		"weekLabel": "Week {{week}}, {{year}}"
 	}
 }

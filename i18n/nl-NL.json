@@ -1745,7 +1745,8 @@
 			"invitations": "Uitnodigingen",
 			"more": "Meer",
 			"backToBoard": "Terug naar bord",
-			"myTasks": "My Tasks"
+			"myTasks": "My Tasks",
+			"sprint": "Sprint"
 		},
 		"projectList": {
 			"viewProject": "Project bekijken",
@@ -1878,6 +1879,14 @@
 			"task_overdue": {
 				"title": "Taak te laat",
 				"content": "{{taskTitle}} is over de einddatum heen"
+			},
+			"task_blocked_on_you": {
+				"content": "{{taskTitle}} is geblokkeerd: {{blockedReason}}",
+				"title": "Een taak wacht op jou"
+			},
+			"task_member_added": {
+				"content": "Je bent als teamlid toegevoegd aan: {{taskTitle}}",
+				"title": "Toegevoegd aan een taak"
 			}
 		},
 		"reminderLeadTime": {
@@ -2012,7 +2021,9 @@
 			"in-review": "Ter beoordeling",
 			"done": "Gereed",
 			"archived": "Gearchiveerd",
-			"planned": "Gepland"
+			"planned": "Gepland",
+			"blocked": "Geblokkeerd",
+			"cancelled": "Geannuleerd"
 		},
 		"priority": {
 			"label": "Prioriteit",
@@ -2236,6 +2247,14 @@
 					"rose": "Roos",
 					"crimson": "Karmozijn"
 				}
+			},
+			"members": {
+				"cardTooltip": "Teamleden: {{names}}",
+				"label": "Teamleden",
+				"none": "Geen teamleden",
+				"responsible": "Verantwoordelijk",
+				"responsibleLabel": "Verantwoordelijk",
+				"updateError": "Teamleden bijwerken mislukt"
 			}
 		},
 		"backlog": {
@@ -2251,7 +2270,9 @@
 			"addFilter": "Filter toevoegen...",
 			"sections": {
 				"planned": "Gepland",
-				"archived": "Gearchiveerd"
+				"archived": "Gearchiveerd",
+				"cancelled": "Geannuleerd",
+				"deleted": "Verwijderd"
 			},
 			"noTasksInSection": "Geen {{section}} taken",
 			"filters": {
@@ -2262,7 +2283,12 @@
 				"dueThisWeek": "Deze week vervallen",
 				"dueNextWeek": "Volgende week vervallen",
 				"noDueDate": "Geen einddatum"
-			}
+			},
+			"deletedBy": "Verwijderd door {{name}} op {{date}}",
+			"noDeletedTasks": "Geen verwijderde taken",
+			"unknownUser": "een voormalig lid",
+			"weekLabel": "Week {{week}} · {{start}} – {{end}}",
+			"weekUnknown": "Eerder"
 		},
 		"sort": {
 			"label": "Sorteren",
@@ -2329,7 +2355,15 @@
 			"description": "Dit zal de taak en alle data permanent verwijderen. Dit kan niet ongedaan worden gemaakt.",
 			"action": "Taak verwijderen",
 			"success": "Taak succesvol verwijderd",
-			"error": "Verwijderen taak mislukt"
+			"error": "Verwijderen taak mislukt",
+			"draftDiscardedReason": "Concept weggegooid voordat de taak was aangemaakt",
+			"reasonDialog": {
+				"bulkDescription_one": "{{count}} taak verwijderen is definitief. Geef een reden op; die blijft bewaard in het verwijderlogboek van het project.",
+				"bulkDescription_other": "{{count}} taken verwijderen is definitief. Geef een reden op; die blijft bewaard in het verwijderlogboek van het project.",
+				"description": "Als je \"{{title}}\" verwijdert, is de taak definitief weg. Geef een reden op; die blijft bewaard in het verwijderlogboek van het project.",
+				"reasonLabel": "Reden van verwijderen",
+				"reasonPlaceholder": "Waarom wordt deze taak verwijderd?"
+			}
 		},
 		"duplicate": {
 			"titleSuffix": "{{title}} (kopie)",
@@ -2467,6 +2501,45 @@
 				"title": "No tasks assigned to you"
 			},
 			"loading": "Loading your tasks…"
+		},
+		"blocked": {
+			"dialog": {
+				"description": "Geef een reden op voordat je \"{{title}}\" naar Geblokkeerd verplaatst.",
+				"nobody": "Niemand in het bijzonder",
+				"reasonLabel": "Reden",
+				"reasonPlaceholder": "Wat houdt deze taak tegen?",
+				"submit": "Markeer als geblokkeerd",
+				"title": "Waarom is deze taak geblokkeerd?",
+				"userHint": "Deze persoon krijgt een melding dat de taak op hen wacht.",
+				"userLabel": "Wie heb je nodig om verder te kunnen? (optioneel)"
+			},
+			"edit": "Blokkeerreden bewerken",
+			"label": "Geblokkeerd",
+			"waitingOn": "Wacht op {{name}}"
+		},
+		"cancel": {
+			"action": "Taak annuleren",
+			"dialog": {
+				"description": "\"{{title}}\" verdwijnt van het bord en komt onder Geannuleerd in de backlog.",
+				"reasonLabel": "Reden van annuleren",
+				"reasonPlaceholder": "Waarom is deze taak niet meer nodig?",
+				"submit": "Taak annuleren",
+				"title": "Deze taak annuleren?"
+			},
+			"error": "Taak annuleren mislukt",
+			"reasonInline": "Geannuleerd: {{reason}}",
+			"success": "Taak geannuleerd"
+		},
+		"archiveCompleted": {
+			"action": "Archiveren",
+			"tooltip": "Archiveer alle afgeronde taken in dit project",
+			"title": "Afgeronde taken archiveren",
+			"description_one": "{{count}} afgeronde taak verdwijnt van het bord en komt onder Gearchiveerd in de backlog. Gebruik het Sprintbord om de week voor alle projecten af te sluiten.",
+			"description_other": "{{count}} afgeronde taken verdwijnen van het bord en komen onder Gearchiveerd in de backlog. Gebruik het Sprintbord om de week voor alle projecten af te sluiten.",
+			"confirm": "Archiveren",
+			"success_one": "{{count}} taak gearchiveerd",
+			"success_other": "{{count}} taken gearchiveerd",
+			"error": "Afgeronde taken archiveren mislukt"
 		}
 	},
 	"invitations": {
@@ -2858,5 +2931,44 @@
 			"startLink": "Start and verify the services",
 			"startLinkDescription": "Start the stack, inspect its status, and check that the application is available."
 		}
+	},
+	"sprint": {
+		"weekLabel": "Week {{week}}, {{year}}",
+		"since": "Sinds de vorige afsluiting op {{date}}",
+		"firstSprint": "Nog geen sprint afgesloten",
+		"summary": "{{open}} open · {{finished}} klaar",
+		"loading": "Sprint laden…",
+		"empty": {
+			"title": "Niets in deze sprint",
+			"description": "Open taken uit alle actieve projecten verschijnen hier."
+		},
+		"filters": {
+			"person": "Filter op persoon",
+			"project": "Filter op project",
+			"allPeople": "Iedereen",
+			"unassigned": "Niet toegewezen",
+			"allProjects": "Alle projecten"
+		},
+		"close": {
+			"action": "Sprint afsluiten",
+			"title": "Week {{week}} afsluiten?",
+			"description": "{{finished}} afgeronde taken uit alle projecten worden onder deze week gearchiveerd. {{open}} onafgeronde taken blijven op het bord en schuiven door naar volgende week.",
+			"confirm": "Sprint afsluiten",
+			"success": "Week {{week}} afgesloten: {{completed}} klaar, {{carried}} doorgeschoven",
+			"error": "Sprint afsluiten mislukt"
+		},
+		"history": {
+			"open": "Geschiedenis",
+			"title": "Sprintgeschiedenis",
+			"description": "Elke afgesloten week en wat er in is afgerond.",
+			"empty": "Er zijn nog geen sprints afgesloten.",
+			"closedBy": "Afgesloten door {{name}} op {{date}}",
+			"unknown": "een voormalig lid",
+			"counts": "{{completed}} klaar · {{carried}} doorgeschoven",
+			"noTasks": "In deze sprint zijn geen taken afgerond."
+		},
+		"carriedOverBadge": "{{count}}×",
+		"carriedOverTooltip_one": "{{count}} keer doorgeschoven",
+		"carriedOverTooltip_other": "{{count}} keer doorgeschoven"
 	}
 }

@@ -5,6 +5,7 @@ import {
   columnTable,
   labelTable,
   projectTable,
+  taskDeletionTable,
   taskTable,
   userTable,
   workspaceUserTable,
@@ -19,6 +20,13 @@ import {
   assertValidPriority,
   assertValidTaskStatus,
 } from "../validate-task-fields";
+import {
+  assertInProgressCapacity,
+  entersInProgressFor,
+  REASON_STATUSES,
+  statusDetailsWithoutInput,
+} from "../workflow-guards";
+import { deletionLogEntry, requireDeletionReason } from "./delete-task";
 
 type BulkOperation =
   | "updateStatus"
@@ -34,11 +42,13 @@ async function bulkUpdateTasks({
   operation,
   value,
   userId,
+  reason,
 }: {
   taskIds: string[];
   operation: BulkOperation;
   value?: string | null;
   userId: string;
+  reason?: string | null;
 }) {
   const tasks = await db
     .select({
@@ -102,7 +112,19 @@ async function bulkUpdateTasks({
       if (!value) {
         throw new HTTPException(400, { message: "Status value is required" });
       }
+      // Blocked and cancelled tasks each need their own reason.
+      if (
+        (REASON_STATUSES as readonly string[]).includes(value) &&
+        tasks.some((task) => task.status !== value)
+      ) {
+        throw new HTTPException(400, {
+          message:
+            "Each task needs its own reason for this status. Update them one at a time.",
+        });
+      }
+
       const projectIds = [...new Set(tasks.map((t) => t.projectId))];
+      const columns = new Map<string, string | null>();
 
       for (const projectId of projectIds) {
         await assertValidTaskStatus(value, projectId);
@@ -113,18 +135,47 @@ async function bulkUpdateTasks({
             eq(columnTable.slug, value),
           ),
         });
+        columns.set(projectId, column?.id ?? null);
+      }
 
+      const incoming = tasks.flatMap((task) => {
+        const startingFor = entersInProgressFor(task, {
+          status: value,
+          userId: task.userId,
+        });
+        return startingFor ? [{ userId: startingFor, taskId: task.id }] : [];
+      });
+
+      updatedCount = await db.transaction(async (tx) => {
+        await assertInProgressCapacity(tx, workspaceId, incoming);
+
+        let count = 0;
+        for (const projectId of projectIds) {
+          const projectTaskIds = tasks
+            .filter((task) => task.projectId === projectId)
+            .map((task) => task.id);
+
+          const result = await tx
+            .update(taskTable)
+            .set({
+              status: value,
+              columnId: columns.get(projectId) ?? null,
+              ...((REASON_STATUSES as readonly string[]).includes(value)
+                ? {}
+                : statusDetailsWithoutInput(value)),
+            })
+            .where(inArray(taskTable.id, projectTaskIds));
+
+          count += result.rowCount ?? projectTaskIds.length;
+        }
+        return count;
+      });
+
+      for (const projectId of projectIds) {
         const projectTasks = tasks.filter(
           (task) => task.projectId === projectId,
         );
         const projectTaskIds = projectTasks.map((task) => task.id);
-
-        const result = await db
-          .update(taskTable)
-          .set({ status: value, columnId: column?.id ?? null })
-          .where(inArray(taskTable.id, projectTaskIds));
-
-        updatedCount += result.rowCount ?? projectTaskIds.length;
 
         const parentProjects = await getSubtaskParentProjects(projectTaskIds);
         await publishEvent("subtask-parents.refresh", {
@@ -197,12 +248,24 @@ async function bulkUpdateTasks({
           )[0]?.name
         : undefined;
 
-      const result = await db
-        .update(taskTable)
-        .set({ userId: assigneeId })
-        .where(inArray(taskTable.id, foundIds));
+      const incoming = tasks.flatMap((task) => {
+        const startingFor = entersInProgressFor(task, {
+          status: task.status,
+          userId: assigneeId,
+        });
+        return startingFor ? [{ userId: startingFor, taskId: task.id }] : [];
+      });
 
-      updatedCount = result.rowCount ?? foundIds.length;
+      updatedCount = await db.transaction(async (tx) => {
+        await assertInProgressCapacity(tx, workspaceId, incoming);
+
+        const result = await tx
+          .update(taskTable)
+          .set({ userId: assigneeId })
+          .where(inArray(taskTable.id, foundIds));
+
+        return result.rowCount ?? foundIds.length;
+      });
 
       for (const task of tasks) {
         const eventType = assigneeId
@@ -223,13 +286,25 @@ async function bulkUpdateTasks({
     }
 
     case "delete": {
+      const deletionReason = requireDeletionReason(reason);
       // Relations cascade away with the children, so capture parents first.
       const parentProjects = await getSubtaskParentProjects(foundIds);
-      const result = await db
-        .delete(taskTable)
-        .where(inArray(taskTable.id, foundIds));
-
-      updatedCount = result.rowCount ?? foundIds.length;
+      updatedCount = await db.transaction(async (tx) => {
+        const deleted = await tx
+          .delete(taskTable)
+          .where(inArray(taskTable.id, foundIds))
+          .returning();
+        if (deleted.length > 0) {
+          await tx
+            .insert(taskDeletionTable)
+            .values(
+              deleted.map((task) =>
+                deletionLogEntry(task, deletionReason, userId),
+              ),
+            );
+        }
+        return deleted.length;
+      });
 
       for (const task of tasks) {
         await publishEvent("task.deleted", {

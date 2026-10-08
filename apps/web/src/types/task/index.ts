@@ -28,6 +28,12 @@ type Task = {
   descriptionDeferred?: boolean;
   status: string;
   priority: string | null;
+  blockedReason?: string | null;
+  blockedOnUserId?: string | null;
+  cancelReason?: string | null;
+  archivedAt?: string | null;
+  carryOverCount?: number;
+  memberIds?: string[];
   startDate: string | null;
   dueDate: string | null;
   position: number | null;

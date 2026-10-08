@@ -410,7 +410,12 @@ describe("CreateTaskModal context isolation", () => {
       await pending;
     });
     await expect(pending).resolves.toBeNull();
-    expect(deleteTask).toHaveBeenCalledExactlyOnceWith("old-draft");
+    expect(deleteTask).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        id: "old-draft",
+        reason: "tasks:delete.draftDiscardedReason",
+      }),
+    );
     expect(screen.getByTestId("description-editor")).not.toHaveAttribute(
       "data-task-id",
     );
@@ -459,7 +464,12 @@ describe("CreateTaskModal context isolation", () => {
       await ensureTaskId?.();
     });
     view.rerender(<CreateTaskModal open={false} onClose={vi.fn()} />);
-    expect(deleteTask).toHaveBeenCalledExactlyOnceWith("task-1");
+    expect(deleteTask).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        id: "task-1",
+        reason: "tasks:delete.draftDiscardedReason",
+      }),
+    );
     expect(setProject).not.toHaveBeenCalled();
   });
 });

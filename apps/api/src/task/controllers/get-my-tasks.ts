@@ -1,26 +1,48 @@
-import { and, asc, eq, inArray } from "drizzle-orm";
+import {
+  and,
+  asc,
+  eq,
+  exists,
+  inArray,
+  isNull,
+  notInArray,
+  or,
+  sql,
+} from "drizzle-orm";
 import {
   externalLinkTable,
   labelTable,
   projectTable,
+  taskMemberTable,
   taskTable,
   userTable,
 } from "../../database/schema";
 import { boundedTaskRead, type TaskReadDatabase } from "../bounded-read";
 import { boardDescription, descriptionDeferred } from "../description-pages";
 import { getSubtaskCounts } from "../get-subtask-counts";
+import { getTaskMemberIds } from "../task-members";
 
 // A personal board unifies tasks from every project, so it uses the fixed
 // default status slugs rather than any single project's custom columns.
 const CANONICAL_COLUMNS = [
   { slug: "to-do", name: "To Do", isFinal: false },
   { slug: "in-progress", name: "In Progress", isFinal: false },
+  { slug: "blocked", name: "Blocked", isFinal: false },
   { slug: "in-review", name: "In Review", isFinal: false },
   { slug: "done", name: "Done", isFinal: true },
 ] as const;
 
-// Personal boards stay small; one page covers every assigned task.
+// Personal boards stay small; one page covers every assigned task. The sprint
+// board holds the whole workspace's open work, so it gets more room.
 const MY_TASKS_LIMIT = 1000;
+const SPRINT_LIMIT = 2000;
+
+// Statuses that are off the sprint: backlog, history and dropped work.
+const OFF_SPRINT_STATUSES = ["planned", "archived", "cancelled"];
+
+export type WorkspaceBoardScope =
+  | { kind: "personal"; userId: string }
+  | { kind: "sprint" };
 
 function parseMetadata(raw: string | null): Record<string, unknown> | null {
   if (!raw) return null;
@@ -34,15 +56,16 @@ function parseMetadata(raw: string | null): Record<string, unknown> | null {
   }
 }
 
-async function getMyTasksBoard(
+async function getWorkspaceBoard(
   db: TaskReadDatabase,
   workspaceId: string,
-  userId: string,
+  scope: WorkspaceBoardScope,
 ) {
+  const boardId = scope.kind === "sprint" ? "sprint" : "my-tasks";
   const base = {
-    id: "my-tasks",
-    name: "My Tasks",
-    slug: "my-tasks",
+    id: boardId,
+    name: scope.kind === "sprint" ? "Sprint" : "My Tasks",
+    slug: boardId,
     icon: null as string | null,
     description: null as string | null,
     descriptionDeferred: false,
@@ -72,7 +95,15 @@ async function getMyTasksBoard(
   const projects = await db
     .select({ id: projectTable.id })
     .from(projectTable)
-    .where(eq(projectTable.workspaceId, workspaceId));
+    .where(
+      scope.kind === "sprint"
+        ? // Archived projects are out of the running sprint.
+          and(
+            eq(projectTable.workspaceId, workspaceId),
+            isNull(projectTable.archivedAt),
+          )
+        : eq(projectTable.workspaceId, workspaceId),
+    );
   const projectIds = projects.map((project) => project.id);
 
   if (projectIds.length === 0) {
@@ -82,6 +113,7 @@ async function getMyTasksBoard(
         columns: emptyColumns,
         archivedTasks: [],
         plannedTasks: [],
+        cancelledTasks: [],
       },
       pagination: pagination(0),
     };
@@ -96,6 +128,11 @@ async function getMyTasksBoard(
       descriptionDeferred,
       status: taskTable.status,
       priority: taskTable.priority,
+      blockedReason: taskTable.blockedReason,
+      blockedOnUserId: taskTable.blockedOnUserId,
+      cancelReason: taskTable.cancelReason,
+      archivedAt: taskTable.archivedAt,
+      carryOverCount: taskTable.carryOverCount,
       startDate: taskTable.startDate,
       dueDate: taskTable.dueDate,
       position: taskTable.position,
@@ -111,17 +148,34 @@ async function getMyTasksBoard(
     .where(
       and(
         inArray(taskTable.projectId, projectIds),
-        eq(taskTable.userId, userId),
+        scope.kind === "sprint"
+          ? notInArray(taskTable.status, OFF_SPRINT_STATUSES)
+          : // Responsible for the task, or helping on it as a team member.
+            or(
+              eq(taskTable.userId, scope.userId),
+              exists(
+                db
+                  .select({ one: sql`1` })
+                  .from(taskMemberTable)
+                  .where(
+                    and(
+                      eq(taskMemberTable.taskId, taskTable.id),
+                      eq(taskMemberTable.userId, scope.userId),
+                    ),
+                  ),
+              ),
+            ),
       ),
     )
     .orderBy(asc(taskTable.dueDate), asc(taskTable.position), asc(taskTable.id))
-    .limit(MY_TASKS_LIMIT);
+    .limit(scope.kind === "sprint" ? SPRINT_LIMIT : MY_TASKS_LIMIT);
 
   const taskIds = rows.map((task) => task.id);
 
   const subtaskCounts = taskIds.length
     ? await getSubtaskCounts(db, taskIds, workspaceId, false)
     : new Map<string, { completed: number; total: number }>();
+  const memberIds = await getTaskMemberIds(db, taskIds);
 
   const labelsData = taskIds.length
     ? await db
@@ -165,6 +219,7 @@ async function getMyTasksBoard(
   const decorate = (task: (typeof rows)[number]) => ({
     ...task,
     subtaskCounts: subtaskCounts.get(task.id) ?? { completed: 0, total: 0 },
+    memberIds: memberIds.get(task.id) ?? [],
     labels: labelsMap.get(task.id) || [],
     externalLinks: linksMap.get(task.id) || [],
   });
@@ -178,6 +233,7 @@ async function getMyTasksBoard(
     (status) =>
       status !== "archived" &&
       status !== "planned" &&
+      status !== "cancelled" &&
       !canonicalSlugs.has(status),
   );
   const columnDefs = [
@@ -209,6 +265,9 @@ async function getMyTasksBoard(
       plannedTasks: rows
         .filter((task) => task.status === "planned")
         .map(decorate),
+      cancelledTasks: rows
+        .filter((task) => task.status === "cancelled")
+        .map(decorate),
     },
     pagination: pagination(rows.length),
   };
@@ -216,7 +275,14 @@ async function getMyTasksBoard(
 
 export default function getMyTasks(workspaceId: string, userId: string) {
   return boundedTaskRead(
-    (db) => getMyTasksBoard(db, workspaceId, userId),
+    (db) => getWorkspaceBoard(db, workspaceId, { kind: "personal", userId }),
     "My tasks request took too long; retry later",
+  );
+}
+
+export function getSprintBoard(workspaceId: string) {
+  return boundedTaskRead(
+    (db) => getWorkspaceBoard(db, workspaceId, { kind: "sprint" }),
+    "Sprint board request took too long; retry later",
   );
 }

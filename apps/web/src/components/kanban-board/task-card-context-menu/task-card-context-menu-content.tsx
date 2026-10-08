@@ -28,6 +28,7 @@ import { generateLink } from "@/lib/generate-link";
 import { getInitials } from "@/lib/get-initials";
 import { getPriorityLabel } from "@/lib/i18n/domain";
 import { getPriorityIcon } from "@/lib/priority";
+import { toastTaskUpdateError } from "@/lib/task-reason";
 import { toast } from "@/lib/toast";
 import useProjectStore from "@/store/project";
 import type Task from "@/types/task";
@@ -134,12 +135,9 @@ export default function TaskCardContextMenuContent({
             [field]: value,
           });
       }
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : t("tasks:update.error"),
-      );
-    } finally {
       toast.success(t("tasks:update.success"));
+    } catch (error) {
+      toastTaskUpdateError(error, t("tasks:update.error"));
     }
   };
 
@@ -329,6 +327,13 @@ export default function TaskCardContextMenuContent({
                       onClick={() => handleChange("status", "planned")}
                     >
                       <span>{t("tasks:actions.markAsPlanned")}</span>
+                    </ContextMenuItem>
+                  )}
+                  {task.status !== "cancelled" && (
+                    <ContextMenuItem
+                      onClick={() => handleChange("status", "cancelled")}
+                    >
+                      <span>{t("tasks:cancel.action")}</span>
                     </ContextMenuItem>
                   )}
                 </>

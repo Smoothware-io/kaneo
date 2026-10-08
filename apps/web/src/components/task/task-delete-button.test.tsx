@@ -47,28 +47,39 @@ describe("TaskDeleteButton", () => {
   it("is only shown to users with task deletion permission", () => {
     mocks.canDeleteTasks.mockReturnValue(false);
 
-    render(<TaskDeleteButton taskId="task-1" onDeleted={vi.fn()} />);
+    render(
+      <TaskDeleteButton
+        taskId="task-1"
+        taskTitle="Fix login"
+        onDeleted={vi.fn()}
+      />,
+    );
 
     expect(
       screen.queryByRole("button", { name: "tasks:delete.action" }),
     ).toBeNull();
   });
 
-  it("deletes after confirmation and reports success", async () => {
+  it("deletes through the reason-prompting mutation and reports success", async () => {
     const onDeleted = vi.fn();
     mocks.deleteTask.mockResolvedValue({ id: "task-1" });
-    render(<TaskDeleteButton taskId="task-1" onDeleted={onDeleted} />);
+    render(
+      <TaskDeleteButton
+        taskId="task-1"
+        taskTitle="Fix login"
+        onDeleted={onDeleted}
+      />,
+    );
 
     fireEvent.click(
       screen.getByRole("button", { name: "tasks:delete.action" }),
     );
-    const deleteButtons = await screen.findAllByRole("button", {
-      name: "tasks:delete.action",
-    });
-    fireEvent.click(deleteButtons.at(-1) as HTMLButtonElement);
 
     await waitFor(() =>
-      expect(mocks.deleteTask).toHaveBeenCalledWith("task-1"),
+      expect(mocks.deleteTask).toHaveBeenCalledWith({
+        id: "task-1",
+        title: "Fix login",
+      }),
     );
     expect(mocks.success).toHaveBeenCalledWith("tasks:delete.success");
     expect(onDeleted).toHaveBeenCalledTimes(1);
@@ -77,15 +88,17 @@ describe("TaskDeleteButton", () => {
   it("keeps the current view open and reports a failed deletion", async () => {
     const onDeleted = vi.fn();
     mocks.deleteTask.mockRejectedValue(new Error("Delete denied"));
-    render(<TaskDeleteButton taskId="task-1" onDeleted={onDeleted} />);
+    render(
+      <TaskDeleteButton
+        taskId="task-1"
+        taskTitle="Fix login"
+        onDeleted={onDeleted}
+      />,
+    );
 
     fireEvent.click(
       screen.getByRole("button", { name: "tasks:delete.action" }),
     );
-    const deleteButtons = await screen.findAllByRole("button", {
-      name: "tasks:delete.action",
-    });
-    fireEvent.click(deleteButtons.at(-1) as HTMLButtonElement);
 
     await waitFor(() =>
       expect(mocks.error).toHaveBeenCalledWith("Delete denied"),

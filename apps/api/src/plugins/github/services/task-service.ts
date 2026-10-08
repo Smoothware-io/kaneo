@@ -6,6 +6,10 @@ import {
   integrationTable,
   taskTable,
 } from "../../../database/schema";
+import {
+  BLOCKED_STATUS,
+  statusDetailsWithoutInput,
+} from "../../../task/workflow-guards";
 import { type GitHubConfig, hasVerifiedGitHubBinding } from "../config";
 
 export type TaskRow = InferSelectModel<typeof taskTable>;
@@ -61,9 +65,17 @@ export async function updateTaskStatus(
     return { applied: false };
   }
 
+  // Integrations move tasks as automation, so the per-person in-progress limit
+  // is not applied here; leaving Blocked still drops the stale blocked details.
   await db
     .update(taskTable)
-    .set({ status: newStatus, columnId })
+    .set({
+      status: newStatus,
+      columnId,
+      ...(newStatus === BLOCKED_STATUS
+        ? {}
+        : statusDetailsWithoutInput(newStatus)),
+    })
     .where(eq(taskTable.id, taskId));
 
   const after = await db.query.taskTable.findFirst({

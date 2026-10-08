@@ -8,25 +8,16 @@ import {
   CalendarX,
   SlidersHorizontal,
 } from "lucide-react";
-import { type CSSProperties, memo, useMemo, useState } from "react";
+import { type CSSProperties, memo, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { TaskProgressBadges } from "@/components/task/task-progress-badges";
-import {
-  AlertDialog,
-  AlertDialogClose,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/preview-card";
+import { CANCELLED_STATUS } from "@/constants/task-workflow";
 import { useDeleteTask } from "@/hooks/mutations/task/use-delete-task";
 import useGetCustomFieldValuesByProject from "@/hooks/queries/custom-field/use-get-custom-field-values-by-project";
 import useActiveWorkspace from "@/hooks/queries/workspace/use-active-workspace";
@@ -39,6 +30,7 @@ import {
 } from "@/lib/due-date-status";
 import { getInitials } from "@/lib/get-initials";
 import { getPriorityIcon } from "@/lib/priority";
+import { toastTaskUpdateError } from "@/lib/task-reason";
 import { toast } from "@/lib/toast";
 import useBacklogBulkSelectionStore from "@/store/backlog-bulk-selection";
 import useProjectStore from "@/store/project";
@@ -78,7 +70,6 @@ const BacklogTaskRow = memo(function BacklogTaskRow({
     showLabels,
     showTaskNumbers,
   } = useUserPreferencesStore();
-  const [isDeleteTaskModalOpen, setIsDeleteTaskModalOpen] = useState(false);
   const { mutateAsync: deleteTask } = useDeleteTask();
   const toggleSelection = useBacklogBulkSelectionStore(
     (state) => state.toggleSelection,
@@ -156,12 +147,10 @@ const BacklogTaskRow = memo(function BacklogTaskRow({
 
   const handleDeleteTask = async () => {
     try {
-      await deleteTask(task.id);
+      await deleteTask({ id: task.id, title: task.title });
       toast.success(t("tasks:delete.success"));
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : t("tasks:delete.error"),
-      );
+      toastTaskUpdateError(error, t("tasks:delete.error"));
     }
   };
 
@@ -203,8 +192,20 @@ const BacklogTaskRow = memo(function BacklogTaskRow({
 
             <div className="flex-1 min-w-0 flex items-center gap-2">
               <div className="flex items-center gap-2 justify-between w-full">
-                <span className="text-sm text-foreground truncate">
-                  {task.title}
+                <span className="flex min-w-0 items-baseline gap-2">
+                  <span className="text-sm text-foreground truncate">
+                    {task.title}
+                  </span>
+                  {task.status === CANCELLED_STATUS && task.cancelReason && (
+                    <span
+                      className="text-xs text-muted-foreground truncate"
+                      title={task.cancelReason}
+                    >
+                      {t("tasks:cancel.reasonInline", {
+                        reason: task.cancelReason,
+                      })}
+                    </span>
+                  )}
                 </span>
                 <div className="flex items-center gap-1">
                   <TaskProgressBadges task={task} />
@@ -310,40 +311,10 @@ const BacklogTaskRow = memo(function BacklogTaskRow({
               projectId,
               worskpaceId: workspace.id,
             }}
-            onDeleteClick={() => setIsDeleteTaskModalOpen(true)}
+            onDeleteClick={handleDeleteTask}
           />
         )}
       </ContextMenu>
-
-      <AlertDialog
-        open={isDeleteTaskModalOpen}
-        onOpenChange={setIsDeleteTaskModalOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("tasks:delete.title")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("tasks:delete.description")}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogClose render={<Button variant="outline" size="sm" />}>
-              {t("common:actions.cancel")}
-            </AlertDialogClose>
-            <AlertDialogClose
-              render={
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleDeleteTask}
-                />
-              }
-            >
-              {t("tasks:delete.action")}
-            </AlertDialogClose>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 });

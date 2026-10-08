@@ -44,6 +44,14 @@ export function NavMain() {
       badge: null,
     },
     {
+      title: t("navigation:sidebar.sprint"),
+      url: `/dashboard/workspace/${workspace.id}/sprint`,
+      isActive:
+        window.location.pathname ===
+        `/dashboard/workspace/${workspace.id}/sprint`,
+      badge: null,
+    },
+    {
       title: t("navigation:sidebar.members"),
       url: `/dashboard/workspace/${workspace.id}/members`,
       isActive:

@@ -537,14 +537,38 @@ export function registerMcpTools(
   registerTool(
     "update_task_status",
     {
-      description: "Update only the status (column) of a task.",
-      inputSchema: z.object({ taskId: nonEmptyString, status: nonEmptyString }),
+      description:
+        "Update only the status (column) of a task. Moving to `blocked` requires blockedReason and to `cancelled` requires cancelReason; moving to `in-progress` fails when the assignee already has 2 tasks in progress.",
+      inputSchema: z.object({
+        taskId: nonEmptyString,
+        status: nonEmptyString,
+        blockedReason: optionalNonEmptyString.describe(
+          "Why the task is blocked. Required when status is `blocked`.",
+        ),
+        blockedOnUserId: optionalNonEmptyString.describe(
+          "Workspace member needed to unblock the task.",
+        ),
+        cancelReason: optionalNonEmptyString.describe(
+          "Why the task is cancelled. Required when status is `cancelled`.",
+        ),
+      }),
     },
     async (args) =>
       run(() =>
         client.json(`/api/task/status/${encodeURIComponent(args.taskId)}`, {
           method: "PUT",
-          body: JSON.stringify({ status: args.status }),
+          body: JSON.stringify({
+            status: args.status,
+            ...(args.blockedReason !== undefined
+              ? { blockedReason: args.blockedReason }
+              : {}),
+            ...(args.blockedOnUserId !== undefined
+              ? { blockedOnUserId: args.blockedOnUserId }
+              : {}),
+            ...(args.cancelReason !== undefined
+              ? { cancelReason: args.cancelReason }
+              : {}),
+          }),
         }),
       ),
   );
@@ -833,13 +857,40 @@ export function registerMcpTools(
   registerTool(
     "delete_task",
     {
-      description: "Delete a task by ID.",
-      inputSchema: z.object({ taskId: nonEmptyString }),
+      description:
+        "Delete a task by ID. The reason is kept in the project's deletion log.",
+      inputSchema: z.object({
+        taskId: nonEmptyString,
+        reason: nonEmptyString.describe("Why the task is deleted."),
+      }),
     },
     async (args) =>
       run(() =>
         client.json(`/api/task/${encodeURIComponent(args.taskId)}`, {
           method: "DELETE",
+          body: JSON.stringify({ reason: args.reason }),
+        }),
+      ),
+  );
+
+  registerTool(
+    "update_task_members",
+    {
+      description:
+        "Set the team members working on a task (replaces the current set). The responsible person is the assignee, set with update_task_assignee.",
+      inputSchema: z.object({
+        taskId: nonEmptyString,
+        userIds: z
+          .array(nonEmptyString)
+          .max(50)
+          .describe("Workspace member user IDs; an empty list removes all"),
+      }),
+    },
+    async (args) =>
+      run(() =>
+        client.json(`/api/task/members/${encodeURIComponent(args.taskId)}`, {
+          method: "PUT",
+          body: JSON.stringify({ userIds: args.userIds }),
         }),
       ),
   );

@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import db from "../../database";
 import { taskTable, userTable } from "../../database/schema";
+import { getTaskMemberIds } from "../task-members";
 
 async function getTask(taskId: string) {
   const task = await db
@@ -12,6 +13,11 @@ async function getTask(taskId: string) {
       description: taskTable.description,
       status: taskTable.status,
       priority: taskTable.priority,
+      blockedReason: taskTable.blockedReason,
+      blockedOnUserId: taskTable.blockedOnUserId,
+      cancelReason: taskTable.cancelReason,
+      archivedAt: taskTable.archivedAt,
+      carryOverCount: taskTable.carryOverCount,
       startDate: taskTable.startDate,
       dueDate: taskTable.dueDate,
       position: taskTable.position,
@@ -32,7 +38,9 @@ async function getTask(taskId: string) {
     });
   }
 
-  return task[0];
+  const memberIds = await getTaskMemberIds(db, [taskId]);
+
+  return { ...task[0], memberIds: memberIds.get(taskId) ?? [] };
 }
 
 export default getTask;

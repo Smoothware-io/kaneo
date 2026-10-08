@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import TaskLayout from "@/components/common/task-layout";
 import PageTitle from "@/components/page-title";
+import TaskCancelButton from "@/components/task/task-cancel-button";
 import TaskDeleteButton from "@/components/task/task-delete-button";
 import TaskDetailsContent from "@/components/task/task-details-content";
 import {
@@ -14,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import useGetActivitiesByTaskId from "@/hooks/queries/activity/use-get-activities-by-task-id";
 import useGetProject from "@/hooks/queries/project/use-get-project";
 import useGetTask from "@/hooks/queries/task/use-get-task";
+import type Task from "@/types/task";
 
 export const Route = createFileRoute(
   "/_layout/_authenticated/dashboard/workspace/$workspaceId/project/$projectId/task/$taskId_",
@@ -76,7 +78,14 @@ function RouteComponent() {
       workspaceId={workspaceId}
       headerActions={
         !isLoading && task ? (
-          <TaskDeleteButton taskId={taskId} onDeleted={handleDeleted} />
+          <>
+            <TaskCancelButton task={task as Task} />
+            <TaskDeleteButton
+              taskId={taskId}
+              taskTitle={task.title}
+              onDeleted={handleDeleted}
+            />
+          </>
         ) : null
       }
       rightSidebar={

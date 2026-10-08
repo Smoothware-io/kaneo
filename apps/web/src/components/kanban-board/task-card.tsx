@@ -8,28 +8,21 @@ import {
   CalendarX,
   GitMerge,
   GitPullRequest,
+  RotateCcw,
   SlidersHorizontal,
 } from "lucide-react";
-import { type CSSProperties, useMemo, useState } from "react";
+import { type CSSProperties, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { BlockedTaskNote } from "@/components/task/blocked-task-note";
 import { TaskProgressBadges } from "@/components/task/task-progress-badges";
-import {
-  AlertDialog,
-  AlertDialogClose,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { ContextMenu, ContextMenuTrigger } from "@/components/ui/context-menu";
 import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/preview-card";
+import { BLOCKED_STATUS } from "@/constants/task-workflow";
 import { useDeleteTask } from "@/hooks/mutations/task/use-delete-task";
 import useGetCustomFieldValuesByProject from "@/hooks/queries/custom-field/use-get-custom-field-values-by-project";
 import useGetProjects from "@/hooks/queries/project/use-get-projects";
@@ -43,6 +36,7 @@ import {
 import { getExternalWebUrl, openExternalWebUrl } from "@/lib/external-url";
 import { getInitials } from "@/lib/get-initials";
 import { getPriorityIcon } from "@/lib/priority";
+import { toastTaskUpdateError } from "@/lib/task-reason";
 import { toast } from "@/lib/toast";
 import useBulkSelectionStore from "@/store/bulk-selection";
 import useProjectStore from "@/store/project";
@@ -92,7 +86,6 @@ function TaskCard({
     showLabels,
     showTaskNumbers,
   } = useUserPreferencesStore();
-  const [isDeleteTaskModalOpen, setIsDeleteTaskModalOpen] = useState(false);
   const { toggleSelection, isSelected, isFocused } = useBulkSelectionStore();
   const isTaskSelected = isSelected(task.id);
   const isTaskFocused = isFocused(task.id);
@@ -179,6 +172,25 @@ function TaskCard({
     );
   }, [workspaceUsers, task.userId]);
 
+  const teamMembers = useMemo(
+    () =>
+      (task.memberIds ?? []).flatMap((id) => {
+        const member = workspaceUsers?.members?.find(
+          (item) => item.userId === id,
+        );
+        return member ? [member] : [];
+      }),
+    [workspaceUsers, task.memberIds],
+  );
+
+  const blockedOnName = useMemo(() => {
+    if (!task.blockedOnUserId) return null;
+    const member = workspaceUsers?.members?.find(
+      (item) => item.userId === task.blockedOnUserId,
+    );
+    return member?.user?.name ?? null;
+  }, [workspaceUsers, task.blockedOnUserId]);
+
   function handleTaskCardClick(
     e: React.MouseEvent<HTMLDivElement> | React.KeyboardEvent<HTMLDivElement>,
   ) {
@@ -213,12 +225,10 @@ function TaskCard({
 
   const handleDeleteTask = async () => {
     try {
-      await deleteTask(task.id);
+      await deleteTask({ id: task.id, title: task.title });
       toast.success(t("tasks:delete.success"));
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : t("tasks:delete.error"),
-      );
+      toastTaskUpdateError(error, t("tasks:delete.error"));
     }
   };
 
@@ -300,6 +310,16 @@ function TaskCard({
               </div>
             </div>
 
+            {task.status === BLOCKED_STATUS && task.blockedReason && (
+              <div className="mb-2.5">
+                <BlockedTaskNote
+                  compact
+                  reason={task.blockedReason}
+                  blockedOnName={blockedOnName}
+                />
+              </div>
+            )}
+
             {showLabels && (
               <div className="mb-2.5">
                 <TaskLabels labels={task.labels ?? []} />
@@ -310,6 +330,52 @@ function TaskCard({
               {showPriority && (
                 <span className="inline-flex items-center gap-1 rounded border border-border/70 bg-muted/55 px-2 py-1 text-[10px] font-medium text-muted-foreground h-5.5">
                   {getPriorityIcon(task.priority ?? "")}
+                </span>
+              )}
+
+              {(task.carryOverCount ?? 0) > 0 && (
+                <span
+                  className="inline-flex h-5.5 items-center gap-1 rounded border border-amber-500/35 bg-amber-500/10 px-1.5 text-[10px] font-medium text-amber-700 dark:text-amber-300"
+                  title={t("sprint:carriedOverTooltip", {
+                    count: task.carryOverCount ?? 0,
+                  })}
+                >
+                  <RotateCcw className="h-3 w-3" aria-hidden="true" />
+                  {t("sprint:carriedOverBadge", {
+                    count: task.carryOverCount ?? 0,
+                  })}
+                </span>
+              )}
+
+              {showAssignees && teamMembers.length > 0 && (
+                <span
+                  className="inline-flex items-center -space-x-1.5"
+                  title={t("tasks:popover.members.cardTooltip", {
+                    names: teamMembers
+                      .map((member) => member.user?.name)
+                      .filter(Boolean)
+                      .join(", "),
+                  })}
+                >
+                  {teamMembers.slice(0, 3).map((member) => (
+                    <Avatar
+                      key={member.userId}
+                      className="h-5 w-5 ring-2 ring-card"
+                    >
+                      <AvatarImage
+                        src={member.user?.image ?? ""}
+                        alt={member.user?.name || ""}
+                      />
+                      <AvatarFallback className="text-[9px] font-medium">
+                        {getInitials(member.user?.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                  ))}
+                  {teamMembers.length > 3 && (
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-muted px-1 text-[9px] font-medium text-muted-foreground ring-2 ring-card">
+                      +{teamMembers.length - 3}
+                    </span>
+                  )}
                 </span>
               )}
 
@@ -515,40 +581,10 @@ function TaskCard({
               projectId: project.id,
               worskpaceId: workspace.id,
             }}
-            onDeleteClick={() => setIsDeleteTaskModalOpen(true)}
+            onDeleteClick={handleDeleteTask}
           />
         )}
       </ContextMenu>
-
-      <AlertDialog
-        open={isDeleteTaskModalOpen}
-        onOpenChange={setIsDeleteTaskModalOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("tasks:delete.title")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("tasks:delete.description")}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogClose render={<Button variant="outline" size="sm" />}>
-              {t("common:actions.cancel")}
-            </AlertDialogClose>
-            <AlertDialogClose
-              render={
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleDeleteTask}
-                />
-              }
-            >
-              {t("tasks:delete.action")}
-            </AlertDialogClose>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

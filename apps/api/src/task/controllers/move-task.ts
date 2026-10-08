@@ -8,6 +8,11 @@ import {
   taskTable,
 } from "../../database/schema";
 import { publishEvent } from "../../events";
+import {
+  assertInProgressCapacity,
+  entersInProgressFor,
+  resolveStatusDetails,
+} from "../workflow-guards";
 import { claimTaskNumber } from "./claim-task-numbers";
 import { nextTaskPosition } from "./next-task-position";
 
@@ -112,7 +117,26 @@ async function moveTask({
     destinationStatus,
   );
 
+  // Moves carry no new reason: a blocked task stays blocked with its details,
+  // while an unblocked task cannot land in Blocked without one.
+  const statusDetails = await resolveStatusDetails({
+    workspaceId: sourceProject.workspaceId,
+    previous: existingTask,
+    nextStatus: resolvedColumn.slug,
+    input: {},
+  });
+
   const movedTask = await db.transaction(async (tx) => {
+    const startingFor = entersInProgressFor(existingTask, {
+      status: resolvedColumn.slug,
+      userId: existingTask.userId,
+    });
+    if (startingFor) {
+      await assertInProgressCapacity(tx, sourceProject.workspaceId, [
+        { userId: startingFor, taskId },
+      ]);
+    }
+
     const nextTaskNumber = await claimTaskNumber(destinationProjectId, tx);
     const nextPosition = await nextTaskPosition(
       tx,
@@ -129,6 +153,7 @@ async function moveTask({
         columnId: resolvedColumn.id,
         number: nextTaskNumber,
         position: nextPosition,
+        ...statusDetails,
       })
       .where(eq(taskTable.id, taskId))
       .returning();

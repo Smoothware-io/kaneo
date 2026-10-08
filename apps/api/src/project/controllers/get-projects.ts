@@ -31,7 +31,8 @@ async function getProjectStatistics(
       projectId: taskTable.projectId,
       totalTasks: count(),
       completedTasks: count(
-        sql`case when ${taskTable.status} in ('done', 'archived') then 1 end`,
+        // Cancelled work is closed too, so it never holds progress below 100%.
+        sql`case when ${taskTable.status} in ('done', 'archived', 'cancelled') then 1 end`,
       ),
       dueDate: min(taskTable.dueDate),
     })

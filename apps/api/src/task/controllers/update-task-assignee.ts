@@ -7,6 +7,10 @@ import {
   assertAssignableUser,
   getProjectWorkspaceId,
 } from "../../utils/assert-assignable-user";
+import {
+  assertInProgressCapacity,
+  entersInProgressFor,
+} from "../workflow-guards";
 
 async function updateTaskAssignee({
   id,
@@ -32,18 +36,30 @@ async function updateTaskAssignee({
     return existingTask;
   }
 
+  const workspaceId = await getProjectWorkspaceId(existingTask.projectId);
+
   if (nextAssigneeId) {
-    await assertAssignableUser(
-      nextAssigneeId,
-      await getProjectWorkspaceId(existingTask.projectId),
-    );
+    await assertAssignableUser(nextAssigneeId, workspaceId);
   }
 
-  const [updatedTask] = await db
-    .update(taskTable)
-    .set({ userId: nextAssigneeId })
-    .where(eq(taskTable.id, id))
-    .returning();
+  const updatedTask = await db.transaction(async (tx) => {
+    const startingFor = entersInProgressFor(existingTask, {
+      status: existingTask.status,
+      userId: nextAssigneeId,
+    });
+    if (startingFor) {
+      await assertInProgressCapacity(tx, workspaceId, [
+        { userId: startingFor, taskId: id },
+      ]);
+    }
+
+    const [task] = await tx
+      .update(taskTable)
+      .set({ userId: nextAssigneeId })
+      .where(eq(taskTable.id, id))
+      .returning();
+    return task;
+  });
 
   if (!updatedTask) {
     throw new HTTPException(500, {

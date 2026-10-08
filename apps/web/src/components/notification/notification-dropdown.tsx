@@ -95,6 +95,16 @@ export function getNotificationTitle(
           ...eventData,
           defaultValue: notification.title ?? notification.type,
         });
+      case "task_member_added":
+        return t("notifications:events.task_member_added.title", {
+          ...eventData,
+          defaultValue: notification.title ?? notification.type,
+        });
+      case "task_blocked_on_you":
+        return t("notifications:events.task_blocked_on_you.title", {
+          ...eventData,
+          defaultValue: notification.title ?? notification.type,
+        });
       case "time_entry_created":
         return t("notifications:events.time_entry_created.title", {
           ...eventData,
@@ -154,6 +164,16 @@ export function getNotificationContent(
         });
       case "task_assignee_changed":
         return t("notifications:events.task_assignee_changed.content", {
+          ...eventData,
+          defaultValue: notification.content ?? "",
+        });
+      case "task_member_added":
+        return t("notifications:events.task_member_added.content", {
+          ...eventData,
+          defaultValue: notification.content ?? "",
+        });
+      case "task_blocked_on_you":
+        return t("notifications:events.task_blocked_on_you.content", {
           ...eventData,
           defaultValue: notification.content ?? "",
         });

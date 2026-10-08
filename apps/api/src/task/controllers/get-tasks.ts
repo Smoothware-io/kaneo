@@ -27,6 +27,7 @@ import {
   projectDescriptionDeferred,
 } from "../description-pages";
 import { getSubtaskCounts } from "../get-subtask-counts";
+import { getTaskMemberIds } from "../task-members";
 
 export type GetTasksOptions = {
   publicOnly?: boolean;
@@ -150,6 +151,11 @@ async function getTasksPage(
     descriptionDeferred,
     status: taskTable.status,
     priority: taskTable.priority,
+    blockedReason: taskTable.blockedReason,
+    blockedOnUserId: taskTable.blockedOnUserId,
+    cancelReason: taskTable.cancelReason,
+    archivedAt: taskTable.archivedAt,
+    carryOverCount: taskTable.carryOverCount,
     startDate: taskTable.startDate,
     dueDate: taskTable.dueDate,
     position: taskTable.position,
@@ -179,6 +185,7 @@ async function getTasksPage(
     project.workspaceId,
     options.publicOnly ?? false,
   );
+  const memberIds = await getTaskMemberIds(db, taskIds);
 
   const labelsData =
     taskIds.length > 0
@@ -265,6 +272,7 @@ async function getTasksPage(
     (status) =>
       status !== "planned" &&
       status !== "archived" &&
+      status !== "cancelled" &&
       !projectColumns.some((column) => column.slug === status),
   );
   if (missingStatuses.length) {
@@ -316,6 +324,7 @@ async function getTasksPage(
       .map((task) => ({
         ...task,
         subtaskCounts: subtaskCounts.get(task.id) ?? { completed: 0, total: 0 },
+        memberIds: memberIds.get(task.id) ?? [],
         labels: taskLabelsMap.get(task.id) || [],
         externalLinks: taskExternalLinksMap.get(task.id) || [],
       })),
@@ -326,6 +335,7 @@ async function getTasksPage(
     .map((task) => ({
       ...task,
       subtaskCounts: subtaskCounts.get(task.id) ?? { completed: 0, total: 0 },
+      memberIds: memberIds.get(task.id) ?? [],
       labels: taskLabelsMap.get(task.id) || [],
       externalLinks: taskExternalLinksMap.get(task.id) || [],
     }));
@@ -335,6 +345,17 @@ async function getTasksPage(
     .map((task) => ({
       ...task,
       subtaskCounts: subtaskCounts.get(task.id) ?? { completed: 0, total: 0 },
+      memberIds: memberIds.get(task.id) ?? [],
+      labels: taskLabelsMap.get(task.id) || [],
+      externalLinks: taskExternalLinksMap.get(task.id) || [],
+    }));
+
+  const cancelledTasks = paginatedTasks
+    .filter((task) => task.status === "cancelled")
+    .map((task) => ({
+      ...task,
+      subtaskCounts: subtaskCounts.get(task.id) ?? { completed: 0, total: 0 },
+      memberIds: memberIds.get(task.id) ?? [],
       labels: taskLabelsMap.get(task.id) || [],
       externalLinks: taskExternalLinksMap.get(task.id) || [],
     }));
@@ -353,6 +374,7 @@ async function getTasksPage(
       columns,
       archivedTasks,
       plannedTasks,
+      cancelledTasks,
     },
     pagination: {
       total,

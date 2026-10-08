@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import PageTitle from "@/components/page-title";
+import TaskReasonDialog from "@/components/task/task-reason-dialog";
 import useActiveWorkspace from "@/hooks/queries/workspace/use-active-workspace";
 import { usePendingCheckout } from "@/hooks/use-pending-checkout";
 
@@ -20,6 +21,7 @@ function DashboardLayoutComponent() {
         hideAppName={!workspace?.name}
       />
       <Outlet />
+      <TaskReasonDialog workspaceId={workspace?.id} />
     </>
   );
 }

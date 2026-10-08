@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useUpdateTask } from "@/hooks/mutations/task/use-update-task";
 import { cn } from "@/lib/cn";
-import { toast } from "@/lib/toast";
+import { toastTaskUpdateError } from "@/lib/task-reason";
 import type Task from "@/types/task";
 
 const CLICK_MOVE_THRESHOLD_PX = 4;
@@ -103,11 +103,7 @@ export function GanttTaskBar({
         });
         return true;
       } catch (error) {
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : t("tasks:gantt.updateDatesError"),
-        );
+        toastTaskUpdateError(error, t("tasks:gantt.updateDatesError"));
         return false;
       }
     },

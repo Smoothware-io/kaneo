@@ -46,6 +46,7 @@ import { getInitials } from "@/lib/get-initials";
 import { getPriorityLabel } from "@/lib/i18n/domain";
 import { resolveLabelColor } from "@/lib/label-color";
 import { getPriorityIcon } from "@/lib/priority";
+import { isReasonPromptCancelled } from "@/lib/task-reason";
 import { toast } from "@/lib/toast";
 import useBulkSelectionStore from "@/store/bulk-selection";
 import useProjectStore from "@/store/project";
@@ -157,17 +158,15 @@ function BulkToolbar() {
     }
   }, [bulkMoveToBacklog, selectedTaskIds, selectedCount, clearSelection, t]);
 
+  // The reason prompt opened by bulkDelete doubles as the confirmation.
   const handleBulkDelete = useCallback(async () => {
-    if (!confirm(t("tasks:bulk.deleteConfirm", { count: selectedCount }))) {
-      return;
-    }
-
     try {
       await bulkDelete(Array.from(selectedTaskIds));
       toast.success(t("tasks:bulk.deleteSuccess", { count: selectedCount }));
       clearSelection();
       setIsActionsOpen(false);
-    } catch (_error) {
+    } catch (error) {
+      if (isReasonPromptCancelled(error)) return;
       toast.error(t("tasks:bulk.deleteError"));
     }
   }, [bulkDelete, selectedTaskIds, selectedCount, clearSelection, t]);
