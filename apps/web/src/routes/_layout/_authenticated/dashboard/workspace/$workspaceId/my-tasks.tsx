@@ -1,11 +1,14 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import SortControl from "@/components/common/sort-control";
 import WorkspaceLayout from "@/components/common/workspace-layout";
 import KanbanBoard from "@/components/kanban-board";
 import PageTitle from "@/components/page-title";
 import TaskDetailsSheet from "@/components/task/task-details-sheet";
 import { useGetMyTasks } from "@/hooks/queries/task/use-get-my-tasks";
+import { useBoardSort } from "@/hooks/use-board-sort";
+import { sortTasks } from "@/lib/sort-tasks";
 import useProjectStore from "@/store/project";
 
 type MyTasksSearchParams = {
@@ -28,6 +31,7 @@ function RouteComponent() {
   const navigate = useNavigate();
   const { data, isLoading } = useGetMyTasks(workspaceId);
   const { project, setProject } = useProjectStore();
+  const { sort, setSort } = useBoardSort(`my-tasks:${workspaceId}`);
 
   useEffect(() => {
     if (data) setProject(data.data);
@@ -47,6 +51,17 @@ function RouteComponent() {
         .find((task) => task.id === taskId)?.projectId
     : undefined;
 
+  const sortedProject = useMemo(() => {
+    if (!project || sort.field === "position") return project;
+    return {
+      ...project,
+      columns: project.columns.map((column) => ({
+        ...column,
+        tasks: sortTasks(column.tasks, sort),
+      })),
+    };
+  }, [project, sort]);
+
   const total =
     project?.columns?.reduce((sum, column) => sum + column.tasks.length, 0) ??
     0;
@@ -54,9 +69,12 @@ function RouteComponent() {
   return (
     <>
       <PageTitle title={t("navigation:sidebar.myTasks")} />
-      <WorkspaceLayout title={t("navigation:sidebar.myTasks")}>
+      <WorkspaceLayout
+        title={t("navigation:sidebar.myTasks")}
+        headerActions={<SortControl sort={sort} onSortChange={setSort} />}
+      >
         <div className="flex h-full flex-col overflow-hidden">
-          {isLoading || !isReady ? (
+          {isLoading || !isReady || !sortedProject ? (
             <div className="flex h-full w-full items-center justify-center p-8 text-sm text-muted-foreground">
               {t("tasks:myTasks.loading")}
             </div>
@@ -71,7 +89,9 @@ function RouteComponent() {
             </div>
           ) : (
             <div className="flex h-full flex-1 overflow-hidden bg-background">
-              <KanbanBoard project={project} variant="personal" />
+              {/* Drag-and-drop stays enabled while sorted: the personal board
+                  only persists status, never position. */}
+              <KanbanBoard project={sortedProject} variant="personal" />
             </div>
           )}
         </div>
