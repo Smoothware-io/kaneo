@@ -13,11 +13,31 @@ import closeSprint from "./controllers/close-sprint";
 import getSprintTasks from "./controllers/get-sprint-tasks";
 import getSprints from "./controllers/get-sprints";
 import {
+  createSprintGoal,
+  deleteSprintGoal,
+  getSprintGoals,
+  reorderSprintGoals,
+  updateSprintGoal,
+} from "./controllers/sprint-goals";
+import {
+  sprintGoalListSchema,
+  sprintGoalSchema,
   sprintListSchema,
   sprintSchema,
   sprintTaskListSchema,
 } from "./response";
-import { sprintParam, workspaceIdParam } from "./schema";
+import {
+  closeSprintBody,
+  createSprintGoalBody,
+  reorderSprintGoalsBody,
+  sprintGoalParam,
+  sprintParam,
+  updateSprintGoalBody,
+  workspaceIdParam,
+} from "./schema";
+
+// Goals are team planning, so anyone who can work on tasks can shape them.
+const goalWritePermission = { task: ["update"] };
 
 const getSprintBoardRoute = createRoute({
   method: "get",
@@ -43,15 +63,22 @@ const closeSprintRoute = createRoute({
   tags: ["Sprints"],
   summary: "Close the sprint",
   description:
-    "Close the week for the whole workspace: finished tasks in every active project are archived under this sprint, and unfinished tasks stay with their carry-over count raised by one.",
+    "Close the week for the whole workspace: finished tasks in every active project are archived under this sprint, and unfinished tasks stay with their carry-over count raised by one. Every open goal must be given a result (fully, half or none); goals with carryOver are copied into the next sprint as fresh goals. The body may be omitted when there are no open goals.",
   middleware: [
     workspaceAccess.fromParam("workspaceId"),
     requireWorkspacePermission({ workspace: ["update", "manage_settings"] }),
     requireEntitlement,
   ] as const,
-  request: { params: workspaceIdParam },
+  request: {
+    params: workspaceIdParam,
+    body: {
+      required: false,
+      content: { "application/json": { schema: closeSprintBody } },
+    },
+  },
   responses: {
     200: jsonResponse("The closed sprint", sprintSchema),
+    400: errorResponse("An open goal has no result, or a result is invalid"),
     403: errorResponse(
       "No workspace access, or missing workspace:update and workspace:manage_settings permission",
     ),
@@ -64,7 +91,8 @@ const listSprintsRoute = createRoute({
   path: "/history/{workspaceId}",
   tags: ["Sprints"],
   summary: "List closed sprints",
-  description: "The workspace's closed sprints, newest first (up to 52).",
+  description:
+    "The workspace's closed sprints, newest first (up to 52), each with its goal score and goals.",
   middleware: [workspaceAccess.fromParam("workspaceId")] as const,
   request: { params: workspaceIdParam },
   responses: {
@@ -89,6 +117,117 @@ const listSprintTasksRoute = createRoute({
   },
 });
 
+const listSprintGoalsRoute = createRoute({
+  method: "get",
+  operationId: "listSprintGoals",
+  path: "/goals/{workspaceId}",
+  tags: ["Sprints"],
+  summary: "List the open sprint's goals",
+  description: "Goals of the running sprint, in display order.",
+  middleware: [workspaceAccess.fromParam("workspaceId")] as const,
+  request: { params: workspaceIdParam },
+  responses: {
+    200: jsonResponse("Open sprint goals", sprintGoalListSchema),
+    403: errorResponse("No access to the workspace"),
+  },
+});
+
+const createSprintGoalRoute = createRoute({
+  method: "post",
+  operationId: "createSprintGoal",
+  path: "/goals/{workspaceId}",
+  tags: ["Sprints"],
+  summary: "Create a sprint goal",
+  description: "Add a goal to the running sprint, placed last.",
+  middleware: [
+    workspaceAccess.fromParam("workspaceId"),
+    requireWorkspacePermission(goalWritePermission),
+  ] as const,
+  request: {
+    params: workspaceIdParam,
+    body: {
+      required: true,
+      content: { "application/json": { schema: createSprintGoalBody } },
+    },
+  },
+  responses: {
+    200: jsonResponse("The created goal", sprintGoalSchema),
+    400: errorResponse("The owner is not a workspace member"),
+    403: errorResponse("No workspace access, or missing task:update"),
+  },
+});
+
+const reorderSprintGoalsRoute = createRoute({
+  method: "put",
+  operationId: "reorderSprintGoals",
+  path: "/goals/{workspaceId}/order",
+  tags: ["Sprints"],
+  summary: "Reorder sprint goals",
+  description: "Set the display order of every open goal.",
+  middleware: [
+    workspaceAccess.fromParam("workspaceId"),
+    requireWorkspacePermission(goalWritePermission),
+  ] as const,
+  request: {
+    params: workspaceIdParam,
+    body: {
+      required: true,
+      content: { "application/json": { schema: reorderSprintGoalsBody } },
+    },
+  },
+  responses: {
+    200: jsonResponse("Open goals in their new order", sprintGoalListSchema),
+    400: errorResponse("goalIds does not list every open goal exactly once"),
+    403: errorResponse("No workspace access, or missing task:update"),
+  },
+});
+
+const updateSprintGoalRoute = createRoute({
+  method: "put",
+  operationId: "updateSprintGoal",
+  path: "/goals/{workspaceId}/{goalId}",
+  tags: ["Sprints"],
+  summary: "Update a sprint goal",
+  description:
+    "Change an open goal; only the fields sent are updated. Closed goals are history and cannot change.",
+  middleware: [
+    workspaceAccess.fromParam("workspaceId"),
+    requireWorkspacePermission(goalWritePermission),
+  ] as const,
+  request: {
+    params: sprintGoalParam,
+    body: {
+      required: true,
+      content: { "application/json": { schema: updateSprintGoalBody } },
+    },
+  },
+  responses: {
+    200: jsonResponse("The updated goal", sprintGoalSchema),
+    400: errorResponse("The owner is not a workspace member"),
+    403: errorResponse("No workspace access, or missing task:update"),
+    404: errorResponse("Open sprint goal not found"),
+  },
+});
+
+const deleteSprintGoalRoute = createRoute({
+  method: "delete",
+  operationId: "deleteSprintGoal",
+  path: "/goals/{workspaceId}/{goalId}",
+  tags: ["Sprints"],
+  summary: "Delete a sprint goal",
+  description: "Remove a goal from the running sprint.",
+  middleware: [
+    workspaceAccess.fromParam("workspaceId"),
+    requireWorkspacePermission(goalWritePermission),
+  ] as const,
+  request: { params: sprintGoalParam },
+  responses: {
+    200: jsonResponse("The deleted goal", sprintGoalSchema),
+    403: errorResponse("No workspace access, or missing task:update"),
+    404: errorResponse("Open sprint goal not found"),
+  },
+});
+
 const sprint = apiRouter()
   .openapi(getSprintBoardRoute, async (c) => {
     const { workspaceId } = c.req.valid("param");
@@ -96,9 +235,11 @@ const sprint = apiRouter()
   })
   .openapi(closeSprintRoute, async (c) => {
     const { workspaceId } = c.req.valid("param");
+    const body = c.req.valid("json");
     const closed = await closeSprint({
       workspaceId,
       currentUserId: c.get("userId"),
+      goals: body?.goals,
     });
     return c.json(closed, 200);
   })
@@ -109,6 +250,33 @@ const sprint = apiRouter()
   .openapi(listSprintTasksRoute, async (c) => {
     const { workspaceId, sprintId } = c.req.valid("param");
     return c.json(await getSprintTasks(workspaceId, sprintId), 200);
+  })
+  .openapi(listSprintGoalsRoute, async (c) => {
+    const { workspaceId } = c.req.valid("param");
+    return c.json(await getSprintGoals(workspaceId), 200);
+  })
+  .openapi(createSprintGoalRoute, async (c) => {
+    const { workspaceId } = c.req.valid("param");
+    return c.json(
+      await createSprintGoal(workspaceId, c.req.valid("json")),
+      200,
+    );
+  })
+  .openapi(reorderSprintGoalsRoute, async (c) => {
+    const { workspaceId } = c.req.valid("param");
+    const { goalIds } = c.req.valid("json");
+    return c.json(await reorderSprintGoals(workspaceId, goalIds), 200);
+  })
+  .openapi(updateSprintGoalRoute, async (c) => {
+    const { workspaceId, goalId } = c.req.valid("param");
+    return c.json(
+      await updateSprintGoal(workspaceId, goalId, c.req.valid("json")),
+      200,
+    );
+  })
+  .openapi(deleteSprintGoalRoute, async (c) => {
+    const { workspaceId, goalId } = c.req.valid("param");
+    return c.json(await deleteSprintGoal(workspaceId, goalId), 200);
   });
 
 export default sprint;

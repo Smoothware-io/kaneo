@@ -7,17 +7,11 @@ import { useTranslation } from "react-i18next";
 import WorkspaceLayout from "@/components/common/workspace-layout";
 import KanbanBoard from "@/components/kanban-board";
 import PageTitle from "@/components/page-title";
+import CloseSprintDialog from "@/components/sprint/close-sprint-dialog";
+import { formatPoints, percentOf } from "@/components/sprint/goal-score";
+import SprintGoalsPanel from "@/components/sprint/sprint-goals-panel";
 import SprintHistorySheet from "@/components/sprint/sprint-history-sheet";
 import TaskDetailsSheet from "@/components/task/task-details-sheet";
-import {
-  AlertDialog,
-  AlertDialogClose,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -26,9 +20,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type { SprintGoalOutcome } from "@/fetchers/sprint/close-sprint";
 import { useCloseSprint } from "@/hooks/mutations/sprint/use-close-sprint";
 import useGetProjects from "@/hooks/queries/project/use-get-projects";
 import { useGetSprintBoard } from "@/hooks/queries/sprint/use-get-sprint-board";
+import { useGetSprintGoals } from "@/hooks/queries/sprint/use-get-sprint-goals";
 import { useGetSprints } from "@/hooks/queries/sprint/use-get-sprints";
 import { useGetActiveWorkspaceUsers } from "@/hooks/queries/workspace-users/use-get-active-workspace-users";
 import { useWorkspacePermission } from "@/hooks/use-workspace-permission";
@@ -83,10 +79,11 @@ function RouteComponent() {
   const navigate = useNavigate();
   const { data, isLoading } = useGetSprintBoard(workspaceId);
   const { data: sprints = [] } = useGetSprints(workspaceId);
+  const { data: goals = [] } = useGetSprintGoals(workspaceId);
   const { data: workspaceUsers } = useGetActiveWorkspaceUsers(workspaceId);
   const { data: projects = [] } = useGetProjects({ workspaceId });
   const { mutateAsync: closeSprint, isPending: isClosing } = useCloseSprint();
-  const { canManageWorkspace } = useWorkspacePermission();
+  const { canManageWorkspace, canUpdateTasks } = useWorkspacePermission();
   const { project, setProject } = useProjectStore();
   const [personId, setPersonId] = useState(ALL);
   const [projectId, setProjectId] = useState(ALL);
@@ -127,6 +124,15 @@ function RouteComponent() {
   const now = new Date();
   const lastSprint = sprints[0];
 
+  const members = useMemo(
+    () =>
+      (workspaceUsers?.members ?? []).map((member) => ({
+        userId: member.userId,
+        name: member.user?.name ?? member.userId,
+      })),
+    [workspaceUsers],
+  );
+
   const personItems = useMemo(() => {
     const items: Record<string, string> = {
       [ALL]: t("sprint:filters.allPeople"),
@@ -148,17 +154,25 @@ function RouteComponent() {
     return items;
   }, [t, projects]);
 
-  const handleCloseSprint = async () => {
+  const handleCloseSprint = async (goalOutcomes: SprintGoalOutcome[]) => {
     setIsCloseDialogOpen(false);
     try {
-      const sprint = await closeSprint(workspaceId);
-      toast.success(
-        t("sprint:close.success", {
-          week: sprint.week,
-          completed: sprint.completedCount,
-          carried: sprint.carriedOverCount,
-        }),
-      );
+      const sprint = await closeSprint({ workspaceId, goals: goalOutcomes });
+      const closedMessage = t("sprint:close.success", {
+        week: sprint.week,
+        completed: sprint.completedCount,
+        carried: sprint.carriedOverCount,
+      });
+      if (sprint.goalPointsTotal > 0) {
+        const scoreMessage = t("sprint:goals.score", {
+          earned: formatPoints(sprint.goalPointsEarned),
+          total: sprint.goalPointsTotal,
+          percent: percentOf(sprint.goalPointsEarned, sprint.goalPointsTotal),
+        });
+        toast.success(`${closedMessage} · ${scoreMessage}`);
+      } else {
+        toast.success(closedMessage);
+      }
     } catch (error) {
       toast.error(
         error instanceof Error && error.message
@@ -260,6 +274,12 @@ function RouteComponent() {
             )}
           </div>
 
+          <SprintGoalsPanel
+            workspaceId={workspaceId}
+            canEdit={canUpdateTasks()}
+            members={members}
+          />
+
           {isLoading || !visibleBoard ? (
             <div className="flex h-full w-full items-center justify-center p-8 text-sm text-muted-foreground">
               {t("sprint:loading")}
@@ -280,32 +300,16 @@ function RouteComponent() {
           )}
         </div>
 
-        <AlertDialog
+        <CloseSprintDialog
           open={isCloseDialogOpen}
           onOpenChange={setIsCloseDialogOpen}
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>
-                {t("sprint:close.title", { week: getISOWeek(now) })}
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                {t("sprint:close.description", {
-                  finished: finishedCount,
-                  open: openCount,
-                })}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogClose render={<Button variant="outline" size="sm" />}>
-                {t("common:actions.cancel")}
-              </AlertDialogClose>
-              <Button size="sm" onClick={() => void handleCloseSprint()}>
-                {t("sprint:close.confirm")}
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+          week={getISOWeek(now)}
+          finishedCount={finishedCount}
+          openCount={openCount}
+          goals={goals}
+          isClosing={isClosing}
+          onConfirm={(goalOutcomes) => void handleCloseSprint(goalOutcomes)}
+        />
 
         <SprintHistorySheet
           workspaceId={workspaceId}

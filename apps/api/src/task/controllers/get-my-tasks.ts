@@ -208,7 +208,14 @@ async function getWorkspaceBoard(
         .where(inArray(externalLinkTable.taskId, taskIds))
         .orderBy(asc(externalLinkTable.id))
     : [];
-  const linksMap = new Map<string, Array<Record<string, unknown>>>();
+  const linksMap = new Map<
+    string,
+    Array<
+      Omit<(typeof externalLinksData)[number], "metadata"> & {
+        metadata: Record<string, unknown> | null;
+      }
+    >
+  >();
   for (const link of externalLinksData) {
     if (!linksMap.has(link.taskId)) linksMap.set(link.taskId, []);
     linksMap

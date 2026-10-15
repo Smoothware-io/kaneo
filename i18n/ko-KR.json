@@ -2929,7 +2929,11 @@
 			"description": "{{finished}} finished tasks across all projects are archived under this week. {{open}} unfinished tasks stay on the board and carry over to next week.",
 			"error": "Failed to close the sprint",
 			"success": "Week {{week}} closed: {{completed}} done, {{carried}} carried over",
-			"title": "Close week {{week}}?"
+			"title": "Close week {{week}}?",
+			"carryOver": "Take to next sprint",
+			"goalsHeading": "How did the goals go?",
+			"resultLabel": "Result for {{title}}",
+			"scoreEveryGoal": "Give every goal a result to close the sprint."
 		},
 		"empty": {
 			"description": "Open tasks from every active project show up here.",
@@ -2956,6 +2960,37 @@
 		"loading": "Loading the sprint…",
 		"since": "Since the last close on {{date}}",
 		"summary": "{{open}} open · {{finished}} done",
-		"weekLabel": "Week {{week}}, {{year}}"
+		"weekLabel": "Week {{week}}, {{year}}",
+		"goals": {
+			"actions": "Goal actions",
+			"add": "Add goal",
+			"addTitle": "Add a sprint goal",
+			"carriedTooltip_other": "Taken over from {{count}} earlier sprints",
+			"delete": "Delete",
+			"deleteError": "Failed to delete the goal",
+			"descriptionLabel": "Details",
+			"dialogDescription": "Goals are scored when the sprint closes: fully earns all points, half earns half.",
+			"edit": "Edit",
+			"editTitle": "Edit sprint goal",
+			"empty": "No goals yet. Add what the team wants to reach this week.",
+			"moveDown": "Move down",
+			"moveUp": "Move up",
+			"noOwner": "No owner",
+			"ownerLabel": "Owner",
+			"points_other": "{{count}} pts",
+			"pointsLabel": "Points",
+			"result": {
+				"fully": "Fully",
+				"half": "Half",
+				"none": "Not at all"
+			},
+			"save": "Save",
+			"saveError": "Failed to save the goal",
+			"score": "{{earned}} / {{total}} pts — {{percent}}%",
+			"title": "This week's goals",
+			"titleLabel": "Goal",
+			"titlePlaceholder": "What should be reached this week?",
+			"totalPoints_other": "{{count}} pts"
+		}
 	}
 }

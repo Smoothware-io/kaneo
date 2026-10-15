@@ -210,6 +210,57 @@ describe("MCP tool catalog", () => {
     expect(lastRequest().url).toBe("http://api.test/api/notification");
   });
 
+  it("manages sprint goals", async () => {
+    await call("create_sprint_goal", {
+      workspaceId: "ws1",
+      title: "Ship billing",
+      points: 3,
+    });
+    expect(lastRequest()).toMatchObject({
+      url: "http://api.test/api/sprint/goals/ws1",
+      method: "POST",
+      body: { title: "Ship billing", points: 3 },
+    });
+
+    await call("update_sprint_goal", {
+      workspaceId: "ws1",
+      goalId: "g1",
+      ownerId: null,
+    });
+    expect(lastRequest()).toMatchObject({
+      url: "http://api.test/api/sprint/goals/ws1/g1",
+      method: "PUT",
+      body: { ownerId: null },
+    });
+
+    await call("delete_sprint_goal", { workspaceId: "ws1", goalId: "g1" });
+    expect(lastRequest()).toMatchObject({
+      url: "http://api.test/api/sprint/goals/ws1/g1",
+      method: "DELETE",
+    });
+  });
+
+  it("closes the sprint with goal results", async () => {
+    const goals = [{ goalId: "g1", result: "half", carryOver: true }];
+    await call("close_sprint", { workspaceId: "ws1", goals });
+
+    expect(lastRequest()).toMatchObject({
+      url: "http://api.test/api/sprint/close/ws1",
+      method: "POST",
+      body: { goals },
+    });
+  });
+
+  it("rejects an unknown goal result", async () => {
+    const result = await call("close_sprint", {
+      workspaceId: "ws1",
+      goals: [{ goalId: "g1", result: "mostly", carryOver: false }],
+    });
+
+    expect(result.isError).toBe(true);
+    expect(apiFetch).not.toHaveBeenCalled();
+  });
+
   it("surfaces an API failure as a tool error", async () => {
     apiFetch.mockResolvedValueOnce(
       Response.json({ message: "Task not found" }, { status: 404 }),

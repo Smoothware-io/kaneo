@@ -1,6 +1,7 @@
 import { createId } from "@paralleldrive/cuid2";
 import { relations, sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   boolean,
   customType,
   foreignKey,
@@ -9,6 +10,7 @@ import {
   jsonb,
   pgTable,
   primaryKey,
+  real,
   text,
   timestamp,
   unique,
@@ -508,12 +510,65 @@ export const sprintTable = pgTable(
     }),
     completedCount: integer("completed_count").notNull().default(0),
     carriedOverCount: integer("carried_over_count").notNull().default(0),
+    // Goal score at close: fully counts a goal's points, half counts half.
+    goalPointsEarned: real("goal_points_earned").notNull().default(0),
+    goalPointsTotal: integer("goal_points_total").notNull().default(0),
   },
   (table) => [
     index("sprint_workspaceId_closedAt_idx").on(
       table.workspaceId,
       table.closedAt,
     ),
+  ],
+);
+
+export const SPRINT_GOAL_RESULTS = ["fully", "half", "none"] as const;
+export type SprintGoalResult = (typeof SPRINT_GOAL_RESULTS)[number];
+
+// A weekly goal: open while sprintId is null, then stamped with its result
+// and the sprint that closed it. Carrying a goal over copies it as a new row.
+export const sprintGoalTable = pgTable(
+  "sprint_goal",
+  {
+    id: text("id")
+      .$defaultFn(() => createId())
+      .primaryKey(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaceTable.id, {
+        onDelete: "cascade",
+        onUpdate: "cascade",
+      }),
+    title: text("title").notNull(),
+    description: text("description"),
+    ownerId: text("owner_id").references(() => userTable.id, {
+      onDelete: "set null",
+      onUpdate: "cascade",
+    }),
+    points: integer("points").notNull().default(1),
+    result: text("result").$type<SprintGoalResult>(),
+    sprintId: text("sprint_id").references(() => sprintTable.id, {
+      onDelete: "cascade",
+      onUpdate: "cascade",
+    }),
+    carriedFromGoalId: text("carried_from_goal_id").references(
+      (): AnyPgColumn => sprintGoalTable.id,
+      { onDelete: "set null", onUpdate: "cascade" },
+    ),
+    carryOverCount: integer("carry_over_count").notNull().default(0),
+    position: integer("position").notNull().default(0),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { mode: "date" })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index("sprint_goal_workspaceId_sprintId_idx").on(
+      table.workspaceId,
+      table.sprintId,
+    ),
+    index("sprint_goal_sprintId_idx").on(table.sprintId),
   ],
 );
 

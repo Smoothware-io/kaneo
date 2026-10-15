@@ -12066,6 +12066,18 @@
 						},
 						"error": {
 							"type": "string"
+						},
+						"goalsHeading": {
+							"type": "string"
+						},
+						"resultLabel": {
+							"type": "string"
+						},
+						"carryOver": {
+							"type": "string"
+						},
+						"scoreEveryGoal": {
+							"type": "string"
 						}
 					},
 					"required": [
@@ -12074,7 +12086,11 @@
 						"description",
 						"confirm",
 						"success",
-						"error"
+						"error",
+						"goalsHeading",
+						"resultLabel",
+						"carryOver",
+						"scoreEveryGoal"
 					]
 				},
 				"history": {
@@ -12155,6 +12171,169 @@
 				},
 				"carriedOverTooltip_other": {
 					"type": "string"
+				},
+				"goals": {
+					"type": "object",
+					"additionalProperties": false,
+					"properties": {
+						"title": {
+							"type": "string"
+						},
+						"empty": {
+							"type": "string"
+						},
+						"totalPoints_one": {
+							"type": "string"
+						},
+						"totalPoints_zero": {
+							"type": "string"
+						},
+						"totalPoints_two": {
+							"type": "string"
+						},
+						"totalPoints_few": {
+							"type": "string"
+						},
+						"totalPoints_many": {
+							"type": "string"
+						},
+						"totalPoints_other": {
+							"type": "string"
+						},
+						"points_one": {
+							"type": "string"
+						},
+						"points_zero": {
+							"type": "string"
+						},
+						"points_two": {
+							"type": "string"
+						},
+						"points_few": {
+							"type": "string"
+						},
+						"points_many": {
+							"type": "string"
+						},
+						"points_other": {
+							"type": "string"
+						},
+						"score": {
+							"type": "string"
+						},
+						"add": {
+							"type": "string"
+						},
+						"addTitle": {
+							"type": "string"
+						},
+						"editTitle": {
+							"type": "string"
+						},
+						"dialogDescription": {
+							"type": "string"
+						},
+						"titleLabel": {
+							"type": "string"
+						},
+						"titlePlaceholder": {
+							"type": "string"
+						},
+						"descriptionLabel": {
+							"type": "string"
+						},
+						"pointsLabel": {
+							"type": "string"
+						},
+						"ownerLabel": {
+							"type": "string"
+						},
+						"noOwner": {
+							"type": "string"
+						},
+						"save": {
+							"type": "string"
+						},
+						"saveError": {
+							"type": "string"
+						},
+						"deleteError": {
+							"type": "string"
+						},
+						"actions": {
+							"type": "string"
+						},
+						"edit": {
+							"type": "string"
+						},
+						"moveUp": {
+							"type": "string"
+						},
+						"moveDown": {
+							"type": "string"
+						},
+						"delete": {
+							"type": "string"
+						},
+						"carriedTooltip_one": {
+							"type": "string"
+						},
+						"carriedTooltip_zero": {
+							"type": "string"
+						},
+						"carriedTooltip_two": {
+							"type": "string"
+						},
+						"carriedTooltip_few": {
+							"type": "string"
+						},
+						"carriedTooltip_many": {
+							"type": "string"
+						},
+						"carriedTooltip_other": {
+							"type": "string"
+						},
+						"result": {
+							"type": "object",
+							"additionalProperties": false,
+							"properties": {
+								"fully": {
+									"type": "string"
+								},
+								"half": {
+									"type": "string"
+								},
+								"none": {
+									"type": "string"
+								}
+							},
+							"required": ["fully", "half", "none"]
+						}
+					},
+					"required": [
+						"title",
+						"empty",
+						"score",
+						"add",
+						"addTitle",
+						"editTitle",
+						"dialogDescription",
+						"titleLabel",
+						"titlePlaceholder",
+						"descriptionLabel",
+						"pointsLabel",
+						"ownerLabel",
+						"noOwner",
+						"save",
+						"saveError",
+						"deleteError",
+						"actions",
+						"edit",
+						"moveUp",
+						"moveDown",
+						"delete",
+						"result"
+					]
 				}
 			},
 			"required": [
@@ -12166,7 +12345,8 @@
 				"empty",
 				"filters",
 				"close",
-				"history"
+				"history",
+				"goals"
 			]
 		}
 	},

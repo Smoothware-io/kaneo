@@ -1021,6 +1021,134 @@ export function registerMcpTools(
       ),
   );
 
+  const goalPoints = z
+    .number()
+    .int()
+    .min(1)
+    .max(100)
+    .describe("Points the goal is worth; a half result earns half");
+
+  registerTool(
+    "list_sprint_goals",
+    {
+      description:
+        "List the goals of a workspace's running weekly sprint, in order.",
+      inputSchema: z.object({ workspaceId: nonEmptyString }),
+    },
+    async (args) =>
+      run(() =>
+        client.json(
+          `/api/sprint/goals/${encodeURIComponent(args.workspaceId)}`,
+        ),
+      ),
+  );
+
+  registerTool(
+    "create_sprint_goal",
+    {
+      description: "Add a goal to a workspace's running weekly sprint.",
+      inputSchema: z.object({
+        workspaceId: nonEmptyString,
+        title: nonEmptyString,
+        description: optionalNonEmptyString,
+        ownerId: optionalNonEmptyString.describe("Owner's member user ID"),
+        points: goalPoints.optional(),
+      }),
+    },
+    async ({ workspaceId, ...goal }) =>
+      run(() =>
+        client.json(`/api/sprint/goals/${encodeURIComponent(workspaceId)}`, {
+          method: "POST",
+          body: JSON.stringify(goal),
+        }),
+      ),
+  );
+
+  registerTool(
+    "update_sprint_goal",
+    {
+      description:
+        "Update an open sprint goal (PATCH-style: only provided fields change). Pass ownerId or description as null to clear them.",
+      inputSchema: z.object({
+        workspaceId: nonEmptyString,
+        goalId: nonEmptyString,
+        title: optionalNonEmptyString,
+        description: z.string().nullable().optional(),
+        ownerId: nullableOptionalNonEmptyString,
+        points: goalPoints.optional(),
+      }),
+    },
+    async ({ workspaceId, goalId, ...patch }) =>
+      run(() =>
+        client.json(
+          `/api/sprint/goals/${encodeURIComponent(workspaceId)}/${encodeURIComponent(goalId)}`,
+          { method: "PUT", body: JSON.stringify(patch) },
+        ),
+      ),
+  );
+
+  registerTool(
+    "delete_sprint_goal",
+    {
+      description: "Delete an open sprint goal.",
+      inputSchema: z.object({
+        workspaceId: nonEmptyString,
+        goalId: nonEmptyString,
+      }),
+    },
+    async (args) =>
+      run(() =>
+        client.json(
+          `/api/sprint/goals/${encodeURIComponent(args.workspaceId)}/${encodeURIComponent(args.goalId)}`,
+          { method: "DELETE" },
+        ),
+      ),
+  );
+
+  registerTool(
+    "list_sprints",
+    {
+      description:
+        "List a workspace's closed sprints, newest first, with task counts, goal score and each goal's result.",
+      inputSchema: z.object({ workspaceId: nonEmptyString }),
+    },
+    async (args) =>
+      run(() =>
+        client.json(
+          `/api/sprint/history/${encodeURIComponent(args.workspaceId)}`,
+        ),
+      ),
+  );
+
+  registerTool(
+    "close_sprint",
+    {
+      description:
+        "Close the workspace's weekly sprint: archives finished tasks, carries unfinished ones over, and scores the goals. Every open goal (see list_sprint_goals) needs a result: fully (all points), half (half the points) or none. carryOver copies the goal into the next sprint. Requires workspace admin rights.",
+      inputSchema: z.object({
+        workspaceId: nonEmptyString,
+        goals: z
+          .array(
+            z.object({
+              goalId: nonEmptyString,
+              result: z.enum(["fully", "half", "none"]),
+              carryOver: z
+                .boolean()
+                .describe("Take the goal to the next sprint"),
+            }),
+          )
+          .default([]),
+      }),
+    },
+    async (args) =>
+      run(() =>
+        client.json(
+          `/api/sprint/close/${encodeURIComponent(args.workspaceId)}`,
+          { method: "POST", body: JSON.stringify({ goals: args.goals }) },
+        ),
+      ),
+  );
+
   registerTool(
     "list_notifications",
     {

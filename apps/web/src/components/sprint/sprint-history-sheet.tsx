@@ -13,6 +13,15 @@ import {
 import { useGetSprintTasks } from "@/hooks/queries/sprint/use-get-sprint-tasks";
 import { useGetSprints } from "@/hooks/queries/sprint/use-get-sprints";
 import { cn } from "@/lib/cn";
+import { formatPoints, percentOf } from "./goal-score";
+
+type SprintGoalResult = "fully" | "half" | "none";
+
+const RESULT_STYLES: Record<SprintGoalResult, string> = {
+  fully: "text-success-foreground",
+  half: "text-warning-foreground",
+  none: "text-muted-foreground",
+};
 
 type SprintHistorySheetProps = {
   workspaceId: string;
@@ -84,8 +93,46 @@ export default function SprintHistorySheet({
                             carried: sprint.carriedOverCount,
                           })}
                         </p>
+                        {sprint.goalPointsTotal > 0 && (
+                          <p className="mt-0.5 text-xs font-medium tabular-nums text-foreground">
+                            {t("sprint:goals.score", {
+                              earned: formatPoints(sprint.goalPointsEarned),
+                              total: sprint.goalPointsTotal,
+                              percent: percentOf(
+                                sprint.goalPointsEarned,
+                                sprint.goalPointsTotal,
+                              ),
+                            })}
+                          </p>
+                        )}
                       </div>
                     </button>
+                    {expanded && sprint.goals.length > 0 && (
+                      <ul className="space-y-1 px-9 pb-2">
+                        {sprint.goals.map((goal) => (
+                          <li
+                            key={goal.id}
+                            className="flex items-baseline gap-2 text-xs"
+                          >
+                            <span
+                              className={cn(
+                                "w-16 shrink-0 font-medium",
+                                goal.result && RESULT_STYLES[goal.result],
+                              )}
+                            >
+                              {goal.result &&
+                                t(`sprint:goals.result.${goal.result}`)}
+                            </span>
+                            <span className="truncate text-foreground">
+                              {goal.title}
+                            </span>
+                            <span className="ml-auto shrink-0 tabular-nums text-muted-foreground">
+                              {t("sprint:goals.points", { count: goal.points })}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                     {expanded && (
                       <SprintTaskList
                         workspaceId={workspaceId}

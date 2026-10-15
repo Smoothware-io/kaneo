@@ -2955,7 +2955,11 @@
 			"description": "{{finished}} afgeronde taken uit alle projecten worden onder deze week gearchiveerd. {{open}} onafgeronde taken blijven op het bord en schuiven door naar volgende week.",
 			"confirm": "Sprint afsluiten",
 			"success": "Week {{week}} afgesloten: {{completed}} klaar, {{carried}} doorgeschoven",
-			"error": "Sprint afsluiten mislukt"
+			"error": "Sprint afsluiten mislukt",
+			"carryOver": "Take to next sprint",
+			"goalsHeading": "How did the goals go?",
+			"resultLabel": "Result for {{title}}",
+			"scoreEveryGoal": "Give every goal a result to close the sprint."
 		},
 		"history": {
 			"open": "Geschiedenis",
@@ -2969,6 +2973,40 @@
 		},
 		"carriedOverBadge": "{{count}}×",
 		"carriedOverTooltip_one": "{{count}} keer doorgeschoven",
-		"carriedOverTooltip_other": "{{count}} keer doorgeschoven"
+		"carriedOverTooltip_other": "{{count}} keer doorgeschoven",
+		"goals": {
+			"actions": "Goal actions",
+			"add": "Add goal",
+			"addTitle": "Add a sprint goal",
+			"carriedTooltip_one": "Taken over from {{count}} earlier sprint",
+			"carriedTooltip_other": "Taken over from {{count}} earlier sprints",
+			"delete": "Delete",
+			"deleteError": "Failed to delete the goal",
+			"descriptionLabel": "Details",
+			"dialogDescription": "Goals are scored when the sprint closes: fully earns all points, half earns half.",
+			"edit": "Edit",
+			"editTitle": "Edit sprint goal",
+			"empty": "No goals yet. Add what the team wants to reach this week.",
+			"moveDown": "Move down",
+			"moveUp": "Move up",
+			"noOwner": "No owner",
+			"ownerLabel": "Owner",
+			"points_one": "{{count}} pt",
+			"points_other": "{{count}} pts",
+			"pointsLabel": "Points",
+			"result": {
+				"fully": "Fully",
+				"half": "Half",
+				"none": "Not at all"
+			},
+			"save": "Save",
+			"saveError": "Failed to save the goal",
+			"score": "{{earned}} / {{total}} pts — {{percent}}%",
+			"title": "This week's goals",
+			"titleLabel": "Goal",
+			"titlePlaceholder": "What should be reached this week?",
+			"totalPoints_one": "{{count}} pt",
+			"totalPoints_other": "{{count}} pts"
+		}
 	}
 }

@@ -2955,7 +2955,11 @@
 			"description": "{{finished}} finished tasks across all projects are archived under this week. {{open}} unfinished tasks stay on the board and carry over to next week.",
 			"confirm": "Close sprint",
 			"success": "Week {{week}} closed: {{completed}} done, {{carried}} carried over",
-			"error": "Failed to close the sprint"
+			"error": "Failed to close the sprint",
+			"goalsHeading": "How did the goals go?",
+			"resultLabel": "Result for {{title}}",
+			"carryOver": "Take to next sprint",
+			"scoreEveryGoal": "Give every goal a result to close the sprint."
 		},
 		"history": {
 			"open": "History",
@@ -2969,6 +2973,40 @@
 		},
 		"carriedOverBadge": "{{count}}×",
 		"carriedOverTooltip_one": "Carried over {{count}} time",
-		"carriedOverTooltip_other": "Carried over {{count}} times"
+		"carriedOverTooltip_other": "Carried over {{count}} times",
+		"goals": {
+			"title": "This week's goals",
+			"empty": "No goals yet. Add what the team wants to reach this week.",
+			"totalPoints_one": "{{count}} pt",
+			"totalPoints_other": "{{count}} pts",
+			"points_one": "{{count}} pt",
+			"points_other": "{{count}} pts",
+			"score": "{{earned}} / {{total}} pts — {{percent}}%",
+			"add": "Add goal",
+			"addTitle": "Add a sprint goal",
+			"editTitle": "Edit sprint goal",
+			"dialogDescription": "Goals are scored when the sprint closes: fully earns all points, half earns half.",
+			"titleLabel": "Goal",
+			"titlePlaceholder": "What should be reached this week?",
+			"descriptionLabel": "Details",
+			"pointsLabel": "Points",
+			"ownerLabel": "Owner",
+			"noOwner": "No owner",
+			"save": "Save",
+			"saveError": "Failed to save the goal",
+			"deleteError": "Failed to delete the goal",
+			"actions": "Goal actions",
+			"edit": "Edit",
+			"moveUp": "Move up",
+			"moveDown": "Move down",
+			"delete": "Delete",
+			"carriedTooltip_one": "Taken over from {{count}} earlier sprint",
+			"carriedTooltip_other": "Taken over from {{count}} earlier sprints",
+			"result": {
+				"fully": "Fully",
+				"half": "Half",
+				"none": "Not at all"
+			}
+		}
 	}
 }

@@ -2179,6 +2179,23 @@
             "type": "integer",
             "minimum": 0,
             "description": "Unfinished tasks that rolled over into the next week."
+          },
+          "goalPointsEarned": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Goal points earned: fully counts all, half counts half."
+          },
+          "goalPointsTotal": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Points of every goal the sprint closed."
+          },
+          "goals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SprintGoal"
+            },
+            "description": "The goals this sprint closed, with their results."
           }
         },
         "required": [
@@ -2188,7 +2205,103 @@
           "closedAt",
           "closedById",
           "completedCount",
-          "carriedOverCount"
+          "carriedOverCount",
+          "goalPointsEarned",
+          "goalPointsTotal",
+          "goals"
+        ]
+      },
+      "SprintGoal": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "workspaceId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ownerId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ownerName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "points": {
+            "type": "integer"
+          },
+          "result": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "fully",
+              "half",
+              "none",
+              null
+            ],
+            "description": "Null while the goal is in the open sprint."
+          },
+          "sprintId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The sprint that closed this goal; null while open."
+          },
+          "carriedFromGoalId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "carryOverCount": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "How many sprints this goal was taken into unreached."
+          },
+          "position": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "workspaceId",
+          "title",
+          "description",
+          "ownerId",
+          "ownerName",
+          "points",
+          "result",
+          "sprintId",
+          "carriedFromGoalId",
+          "carryOverCount",
+          "position",
+          "createdAt",
+          "updatedAt"
         ]
       },
       "SprintTask": {
@@ -13181,7 +13294,7 @@
           "Sprints"
         ],
         "summary": "Close the sprint",
-        "description": "Close the week for the whole workspace: finished tasks in every active project are archived under this sprint, and unfinished tasks stay with their carry-over count raised by one.",
+        "description": "Close the week for the whole workspace: finished tasks in every active project are archived under this sprint, and unfinished tasks stay with their carry-over count raised by one. Every open goal must be given a result (fully, half or none); goals with carryOver are copied into the next sprint as fresh goals. The body may be omitted when there are no open goals.",
         "parameters": [
           {
             "schema": {
@@ -13192,6 +13305,49 @@
             "in": "path"
           }
         ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "goals": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "goalId": {
+                          "type": "string"
+                        },
+                        "result": {
+                          "type": "string",
+                          "enum": [
+                            "fully",
+                            "half",
+                            "none"
+                          ],
+                          "description": "fully earns the goal's points, half earns half of them, none earns nothing."
+                        },
+                        "carryOver": {
+                          "type": "boolean",
+                          "description": "Copy the goal into the next sprint as a fresh goal."
+                        }
+                      },
+                      "required": [
+                        "goalId",
+                        "result",
+                        "carryOver"
+                      ]
+                    },
+                    "default": [],
+                    "description": "A result for every open goal."
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "The closed sprint",
@@ -13199,6 +13355,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Sprint"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An open goal has no result, or a result is invalid",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
                 }
               }
             }
@@ -13226,7 +13392,7 @@
           "Sprints"
         ],
         "summary": "List closed sprints",
-        "description": "The workspace's closed sprints, newest first (up to 52).",
+        "description": "The workspace's closed sprints, newest first (up to 52), each with its goal score and goals.",
         "parameters": [
           {
             "schema": {
@@ -13322,6 +13488,397 @@
           },
           "404": {
             "description": "Sprint not found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sprint/goals/{workspaceId}": {
+      "get": {
+        "operationId": "listSprintGoals",
+        "tags": [
+          "Sprints"
+        ],
+        "summary": "List the open sprint's goals",
+        "description": "Goals of the running sprint, in display order.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "workspaceId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Open sprint goals",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SprintGoal"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials"
+          },
+          "403": {
+            "description": "No access to the workspace",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createSprintGoal",
+        "tags": [
+          "Sprints"
+        ],
+        "summary": "Create a sprint goal",
+        "description": "Add a goal to the running sprint, placed last.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "workspaceId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "description": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 2000
+                  },
+                  "ownerId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "points": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "description": "What the goal is worth; half a result earns half of it."
+                  }
+                },
+                "required": [
+                  "title"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The created goal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SprintGoal"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The owner is not a workspace member",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials"
+          },
+          "403": {
+            "description": "No workspace access, or missing task:update",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sprint/goals/{workspaceId}/order": {
+      "put": {
+        "operationId": "reorderSprintGoals",
+        "tags": [
+          "Sprints"
+        ],
+        "summary": "Reorder sprint goals",
+        "description": "Set the display order of every open goal.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "workspaceId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "goalIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1,
+                    "description": "Every open goal's ID, in the new order."
+                  }
+                },
+                "required": [
+                  "goalIds"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Open goals in their new order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SprintGoal"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "goalIds does not list every open goal exactly once",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials"
+          },
+          "403": {
+            "description": "No workspace access, or missing task:update",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sprint/goals/{workspaceId}/{goalId}": {
+      "put": {
+        "operationId": "updateSprintGoal",
+        "tags": [
+          "Sprints"
+        ],
+        "summary": "Update a sprint goal",
+        "description": "Change an open goal; only the fields sent are updated. Closed goals are history and cannot change.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "workspaceId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "goalId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "description": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 2000
+                  },
+                  "ownerId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "points": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "description": "What the goal is worth; half a result earns half of it."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated goal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SprintGoal"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The owner is not a workspace member",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials"
+          },
+          "403": {
+            "description": "No workspace access, or missing task:update",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Open sprint goal not found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteSprintGoal",
+        "tags": [
+          "Sprints"
+        ],
+        "summary": "Delete a sprint goal",
+        "description": "Remove a goal from the running sprint.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "workspaceId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "goalId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The deleted goal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SprintGoal"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials"
+          },
+          "403": {
+            "description": "No workspace access, or missing task:update",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Open sprint goal not found",
             "content": {
               "text/plain": {
                 "schema": {

@@ -1,6 +1,13 @@
 import { and, eq, inArray, isNull, notInArray, sql } from "drizzle-orm";
+import { HTTPException } from "hono/http-exception";
 import db from "../../database";
-import { projectTable, sprintTable, taskTable } from "../../database/schema";
+import {
+  projectTable,
+  type SprintGoalResult,
+  sprintGoalTable,
+  sprintTable,
+  taskTable,
+} from "../../database/schema";
 import { publishEvent } from "../../events";
 import { getSubtaskParentProjects } from "../../task/get-subtask-parent-projects";
 import { taskIsCompleted } from "../../task/task-is-completed";
@@ -8,22 +15,34 @@ import {
   ARCHIVED_STATUS,
   statusDetailsWithoutInput,
 } from "../../task/workflow-guards";
+import { goalScore } from "../goal-score";
 import { isoWeek } from "../iso-week";
+import { selectSprintGoals } from "./sprint-goal-query";
 
 // Statuses that are not part of a running sprint, so they never carry over.
 const OFF_SPRINT_STATUSES = ["planned", "archived", "cancelled"];
+
+export type GoalOutcome = {
+  goalId: string;
+  result: SprintGoalResult;
+  carryOver: boolean;
+};
 
 /**
  * Closes the workspace's weekly sprint: every finished task in an active
  * project is archived under this sprint, and every unfinished one stays on
  * the board with its carry-over count raised, so slipping work is visible.
+ * Every open goal must be scored; goals taken to the next sprint are copied
+ * as fresh open goals so the closed one keeps its result.
  */
 async function closeSprint({
   workspaceId,
   currentUserId,
+  goals = [],
 }: {
   workspaceId: string;
   currentUserId: string;
+  goals?: GoalOutcome[];
 }) {
   const { sprint, archived, carriedProjectIds } = await db.transaction(
     async (tx) => {
@@ -31,6 +50,36 @@ async function closeSprint({
       await tx.execute(
         sql`SELECT pg_advisory_xact_lock(1526, hashtext(${workspaceId}))`,
       );
+
+      const openGoals = await tx
+        .select()
+        .from(sprintGoalTable)
+        .where(
+          and(
+            eq(sprintGoalTable.workspaceId, workspaceId),
+            isNull(sprintGoalTable.sprintId),
+          ),
+        );
+      const outcomes = new Map(goals.map((goal) => [goal.goalId, goal]));
+      if (outcomes.size !== goals.length) {
+        throw new HTTPException(400, {
+          message: "Each goal can only be scored once",
+        });
+      }
+      const openIds = new Set(openGoals.map((goal) => goal.id));
+      if (goals.some((goal) => !openIds.has(goal.goalId))) {
+        throw new HTTPException(400, {
+          message: "Results were sent for goals that are not open",
+        });
+      }
+      const unscored = openGoals.filter((goal) => !outcomes.has(goal.id));
+      if (unscored.length > 0) {
+        throw new HTTPException(400, {
+          message: `Every open goal needs a result. Missing: ${unscored
+            .map((goal) => goal.title)
+            .join(", ")}`,
+        });
+      }
 
       const activeProjectIds = tx
         .select({ id: projectTable.id })
@@ -96,11 +145,44 @@ async function closeSprint({
         )
         .returning({ projectId: taskTable.projectId });
 
+      const scored = openGoals.map((goal) => {
+        const outcome = outcomes.get(goal.id) as GoalOutcome;
+        return {
+          ...goal,
+          result: outcome.result,
+          carryOver: outcome.carryOver,
+        };
+      });
+      for (const goal of scored) {
+        await tx
+          .update(sprintGoalTable)
+          .set({ result: goal.result, sprintId: created.id })
+          .where(eq(sprintGoalTable.id, goal.id));
+      }
+      const carried = scored.filter((goal) => goal.carryOver);
+      if (carried.length > 0) {
+        await tx.insert(sprintGoalTable).values(
+          carried.map((goal) => ({
+            workspaceId,
+            title: goal.title,
+            description: goal.description,
+            ownerId: goal.ownerId,
+            points: goal.points,
+            carriedFromGoalId: goal.id,
+            carryOverCount: goal.carryOverCount + 1,
+            position: goal.position,
+          })),
+        );
+      }
+      const score = goalScore(scored);
+
       const [sprintWithCounts] = await tx
         .update(sprintTable)
         .set({
           completedCount: archivedRows.length,
           carriedOverCount: carriedRows.length,
+          goalPointsEarned: score.earned,
+          goalPointsTotal: score.total,
         })
         .where(eq(sprintTable.id, created.id))
         .returning();
@@ -146,7 +228,10 @@ async function closeSprint({
     });
   }
 
-  return sprint;
+  return {
+    ...sprint,
+    goals: await selectSprintGoals(workspaceId, [sprint.id]),
+  };
 }
 
 export default closeSprint;
