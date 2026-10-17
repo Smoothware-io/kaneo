@@ -94,6 +94,13 @@ function RouteComponent() {
     if (data) setProject(data.data);
   }, [data, setProject]);
 
+  const handleOpenTask = useCallback(
+    (id: string) => {
+      navigate({ to: ".", search: { taskId: id } });
+    },
+    [navigate],
+  );
+
   const handleCloseTaskSheet = useCallback(() => {
     navigate({ to: ".", search: {}, replace: true });
   }, [navigate]);
@@ -105,10 +112,13 @@ function RouteComponent() {
   );
 
   // A clicked task can belong to any project; the task sheet needs its own.
+  // Goal tickets may be off the board (planned or archived), so check them too.
   const selectedProjectId = taskId
-    ? project?.columns
+    ? (project?.columns
         ?.flatMap((column) => column.tasks)
-        .find((task) => task.id === taskId)?.projectId
+        .find((task) => task.id === taskId)?.projectId ??
+      goals.flatMap((goal) => goal.tasks).find((task) => task.id === taskId)
+        ?.projectId)
     : undefined;
 
   const allTasks = isReady
@@ -278,6 +288,7 @@ function RouteComponent() {
             workspaceId={workspaceId}
             canEdit={canUpdateTasks()}
             members={members}
+            onOpenTask={handleOpenTask}
           />
 
           {isLoading || !visibleBoard ? (

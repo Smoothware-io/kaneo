@@ -2275,8 +2275,26 @@
             "minimum": 0,
             "description": "How many sprints this goal was taken into unreached."
           },
+          "repeatWeekly": {
+            "type": "boolean"
+          },
           "position": {
             "type": "integer"
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SprintGoalTask"
+            },
+            "description": "Linked tasks, unfinished first."
+          },
+          "taskCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "doneTaskCount": {
+            "type": "integer",
+            "minimum": 0
           },
           "createdAt": {
             "type": "string",
@@ -2299,9 +2317,70 @@
           "sprintId",
           "carriedFromGoalId",
           "carryOverCount",
+          "repeatWeekly",
           "position",
+          "tasks",
+          "taskCount",
+          "doneTaskCount",
           "createdAt",
           "updatedAt"
+        ]
+      },
+      "SprintGoalTask": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "number": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "projectName": {
+            "type": "string"
+          },
+          "projectSlug": {
+            "type": "string"
+          },
+          "userId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "assigneeName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "done": {
+            "type": "boolean",
+            "description": "In a final column, or archived by a sprint close."
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "title",
+          "status",
+          "projectId",
+          "projectName",
+          "projectSlug",
+          "userId",
+          "assigneeName",
+          "done"
         ]
       },
       "SprintTask": {
@@ -13593,6 +13672,18 @@
                     "minimum": 1,
                     "maximum": 100,
                     "description": "What the goal is worth; half a result earns half of it."
+                  },
+                  "repeatWeekly": {
+                    "type": "boolean",
+                    "description": "Re-create the goal fresh (same title and points, no tickets) for every next sprint."
+                  },
+                  "taskIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 100,
+                    "description": "Tasks that must be finished to reach the goal."
                   }
                 },
                 "required": [
@@ -13776,6 +13867,10 @@
                     "minimum": 1,
                     "maximum": 100,
                     "description": "What the goal is worth; half a result earns half of it."
+                  },
+                  "repeatWeekly": {
+                    "type": "boolean",
+                    "description": "Re-create the goal fresh (same title and points, no tickets) for every next sprint."
                   }
                 }
               }
@@ -13856,6 +13951,174 @@
         "responses": {
           "200": {
             "description": "The deleted goal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SprintGoal"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials"
+          },
+          "403": {
+            "description": "No workspace access, or missing task:update",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Open sprint goal not found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sprint/goals/{workspaceId}/{goalId}/tasks": {
+      "post": {
+        "operationId": "linkSprintGoalTasks",
+        "tags": [
+          "Sprints"
+        ],
+        "summary": "Link tasks to a sprint goal",
+        "description": "Link the tasks that must be finished to reach an open goal. A task can belong to several goals.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "workspaceId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "goalId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "taskIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1,
+                    "maxItems": 100,
+                    "description": "Tasks to link; ones already linked are left as they are."
+                  }
+                },
+                "required": [
+                  "taskIds"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The goal with its linked tasks",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SprintGoal"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A task is not in this workspace",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials"
+          },
+          "403": {
+            "description": "No workspace access, or missing task:update",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Open sprint goal not found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sprint/goals/{workspaceId}/{goalId}/tasks/{taskId}": {
+      "delete": {
+        "operationId": "unlinkSprintGoalTask",
+        "tags": [
+          "Sprints"
+        ],
+        "summary": "Unlink a task from a sprint goal",
+        "description": "Remove a task from an open goal. The task itself is kept.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "workspaceId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "goalId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "taskId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The goal with its linked tasks",
             "content": {
               "application/json": {
                 "schema": {

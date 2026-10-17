@@ -16,7 +16,9 @@ import {
   createSprintGoal,
   deleteSprintGoal,
   getSprintGoals,
+  linkSprintGoalTasks,
   reorderSprintGoals,
+  unlinkSprintGoalTask,
   updateSprintGoal,
 } from "./controllers/sprint-goals";
 import {
@@ -29,8 +31,10 @@ import {
 import {
   closeSprintBody,
   createSprintGoalBody,
+  linkSprintGoalTasksBody,
   reorderSprintGoalsBody,
   sprintGoalParam,
+  sprintGoalTaskParam,
   sprintParam,
   updateSprintGoalBody,
   workspaceIdParam,
@@ -228,6 +232,52 @@ const deleteSprintGoalRoute = createRoute({
   },
 });
 
+const linkSprintGoalTasksRoute = createRoute({
+  method: "post",
+  operationId: "linkSprintGoalTasks",
+  path: "/goals/{workspaceId}/{goalId}/tasks",
+  tags: ["Sprints"],
+  summary: "Link tasks to a sprint goal",
+  description:
+    "Link the tasks that must be finished to reach an open goal. A task can belong to several goals.",
+  middleware: [
+    workspaceAccess.fromParam("workspaceId"),
+    requireWorkspacePermission(goalWritePermission),
+  ] as const,
+  request: {
+    params: sprintGoalParam,
+    body: {
+      required: true,
+      content: { "application/json": { schema: linkSprintGoalTasksBody } },
+    },
+  },
+  responses: {
+    200: jsonResponse("The goal with its linked tasks", sprintGoalSchema),
+    400: errorResponse("A task is not in this workspace"),
+    403: errorResponse("No workspace access, or missing task:update"),
+    404: errorResponse("Open sprint goal not found"),
+  },
+});
+
+const unlinkSprintGoalTaskRoute = createRoute({
+  method: "delete",
+  operationId: "unlinkSprintGoalTask",
+  path: "/goals/{workspaceId}/{goalId}/tasks/{taskId}",
+  tags: ["Sprints"],
+  summary: "Unlink a task from a sprint goal",
+  description: "Remove a task from an open goal. The task itself is kept.",
+  middleware: [
+    workspaceAccess.fromParam("workspaceId"),
+    requireWorkspacePermission(goalWritePermission),
+  ] as const,
+  request: { params: sprintGoalTaskParam },
+  responses: {
+    200: jsonResponse("The goal with its linked tasks", sprintGoalSchema),
+    403: errorResponse("No workspace access, or missing task:update"),
+    404: errorResponse("Open sprint goal not found"),
+  },
+});
+
 const sprint = apiRouter()
   .openapi(getSprintBoardRoute, async (c) => {
     const { workspaceId } = c.req.valid("param");
@@ -277,6 +327,15 @@ const sprint = apiRouter()
   .openapi(deleteSprintGoalRoute, async (c) => {
     const { workspaceId, goalId } = c.req.valid("param");
     return c.json(await deleteSprintGoal(workspaceId, goalId), 200);
+  })
+  .openapi(linkSprintGoalTasksRoute, async (c) => {
+    const { workspaceId, goalId } = c.req.valid("param");
+    const { taskIds } = c.req.valid("json");
+    return c.json(await linkSprintGoalTasks(workspaceId, goalId, taskIds), 200);
+  })
+  .openapi(unlinkSprintGoalTaskRoute, async (c) => {
+    const { workspaceId, goalId, taskId } = c.req.valid("param");
+    return c.json(await unlinkSprintGoalTask(workspaceId, goalId, taskId), 200);
   });
 
 export default sprint;

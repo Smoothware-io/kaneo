@@ -414,6 +414,13 @@
       "when": 1792060004715,
       "tag": "0058_sprint_goals",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1792237091753,
+      "tag": "0059_sprint_goal_tasks",
+      "breakpoints": true
     }
   ]
 }

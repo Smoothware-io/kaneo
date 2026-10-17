@@ -2972,7 +2972,9 @@
 			"carryOver": "Take to next sprint",
 			"goalsHeading": "How did the goals go?",
 			"resultLabel": "Result for {{title}}",
-			"scoreEveryGoal": "Give every goal a result to close the sprint."
+			"scoreEveryGoal": "Give every goal a result to close the sprint.",
+			"repeats": "Repeats next week",
+			"suggestion": "Tickets: {{done}} of {{total}} done, suggested {{result}}"
 		},
 		"empty": {
 			"description": "Open tasks from every active project show up here.",
@@ -3038,7 +3040,27 @@
 			"totalPoints_few": "{{count}} pts",
 			"totalPoints_many": "{{count}} pts",
 			"totalPoints_one": "{{count}} pt",
-			"totalPoints_other": "{{count}} pts"
+			"totalPoints_other": "{{count}} pts",
+			"linkAction": "Link",
+			"linkDescription": "Find the tickets that must be done to reach “{{title}}”.",
+			"linked": "Linked",
+			"linkError": "Failed to link the ticket",
+			"linkTickets": "Link tickets",
+			"linkTitle": "Link tickets",
+			"noTickets": "No tickets linked yet. Link the tickets that must be done to reach this goal.",
+			"progress": "{{done}} / {{total}} tickets done",
+			"repeatBadge": "Weekly",
+			"repeatHint": "When the sprint closes, this goal comes back fresh for the next week.",
+			"repeatLabel": "Repeat every week",
+			"repeatTooltip": "Comes back every week",
+			"searchEmpty": "No tickets found.",
+			"searchHint": "Type to search tickets across all projects.",
+			"searchPlaceholder": "Search tickets by title or key",
+			"taskBadge": "Goal W{{week}}: {{title}}",
+			"ticketDone": "Done",
+			"toggleTickets": "Show tickets for {{title}}",
+			"unlink": "Unlink {{title}}",
+			"unlinkError": "Failed to unlink the ticket"
 		}
 	}
 }

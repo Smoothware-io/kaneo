@@ -21,3 +21,13 @@ export function percentOf(earned: number, total: number) {
 export function formatPoints(points: number) {
   return Number.isInteger(points) ? String(points) : points.toFixed(1);
 }
+
+/** The result the linked tickets point to; no tickets means no suggestion. */
+export function suggestedResult(goal: {
+  taskCount: number;
+  doneTaskCount: number;
+}) {
+  if (goal.taskCount === 0) return null;
+  if (goal.doneTaskCount === goal.taskCount) return "fully";
+  return goal.doneTaskCount > 0 ? "half" : "none";
+}

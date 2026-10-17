@@ -240,6 +240,43 @@ describe("MCP tool catalog", () => {
     });
   });
 
+  it("links and unlinks goal tickets", async () => {
+    await call("link_task_to_goal", {
+      workspaceId: "ws1",
+      goalId: "g1",
+      taskIds: ["t1", "t2"],
+    });
+    expect(lastRequest()).toMatchObject({
+      url: "http://api.test/api/sprint/goals/ws1/g1/tasks",
+      method: "POST",
+      body: { taskIds: ["t1", "t2"] },
+    });
+
+    await call("unlink_task_from_goal", {
+      workspaceId: "ws1",
+      goalId: "g1",
+      taskId: "t 1",
+    });
+    expect(lastRequest()).toMatchObject({
+      url: "http://api.test/api/sprint/goals/ws1/g1/tasks/t%201",
+      method: "DELETE",
+    });
+  });
+
+  it("creates a repeating goal linked to tickets", async () => {
+    await call("create_sprint_goal", {
+      workspaceId: "ws1",
+      title: "Inbox zero",
+      repeatWeekly: true,
+      taskIds: ["t1"],
+    });
+    expect(lastRequest().body).toEqual({
+      title: "Inbox zero",
+      repeatWeekly: true,
+      taskIds: ["t1"],
+    });
+  });
+
   it("closes the sprint with goal results", async () => {
     const goals = [{ goalId: "g1", result: "half", carryOver: true }];
     await call("close_sprint", { workspaceId: "ws1", goals });

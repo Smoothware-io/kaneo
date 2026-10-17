@@ -1,10 +1,20 @@
-import { and, eq, inArray, isNull, notInArray, sql } from "drizzle-orm";
+import {
+  and,
+  eq,
+  inArray,
+  isNull,
+  ne,
+  not,
+  notInArray,
+  sql,
+} from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import db from "../../database";
 import {
   projectTable,
   type SprintGoalResult,
   sprintGoalTable,
+  sprintGoalTaskTable,
   sprintTable,
   taskTable,
 } from "../../database/schema";
@@ -17,7 +27,7 @@ import {
 } from "../../task/workflow-guards";
 import { goalScore } from "../goal-score";
 import { isoWeek } from "../iso-week";
-import { selectSprintGoals } from "./sprint-goal-query";
+import { goalTaskIsDone, selectSprintGoals } from "./sprint-goal-query";
 
 // Statuses that are not part of a running sprint, so they never carry over.
 const OFF_SPRINT_STATUSES = ["planned", "archived", "cancelled"];
@@ -159,17 +169,72 @@ async function closeSprint({
           .set({ result: goal.result, sprintId: created.id })
           .where(eq(sprintGoalTable.id, goal.id));
       }
+      // Carried goals continue with the tickets still left to do; finished
+      // tickets stay linked to the closed goal as its history.
       const carried = scored.filter((goal) => goal.carryOver);
       if (carried.length > 0) {
+        const copies = await tx
+          .insert(sprintGoalTable)
+          .values(
+            carried.map((goal) => ({
+              workspaceId,
+              title: goal.title,
+              description: goal.description,
+              ownerId: goal.ownerId,
+              points: goal.points,
+              carriedFromGoalId: goal.id,
+              carryOverCount: goal.carryOverCount + 1,
+              repeatWeekly: goal.repeatWeekly,
+              position: goal.position,
+            })),
+          )
+          .returning({
+            id: sprintGoalTable.id,
+            carriedFromGoalId: sprintGoalTable.carriedFromGoalId,
+          });
+        const copyOf = new Map(
+          copies.map((copy) => [copy.carriedFromGoalId, copy.id]),
+        );
+        const openLinks = await tx
+          .select({
+            goalId: sprintGoalTaskTable.goalId,
+            taskId: sprintGoalTaskTable.taskId,
+          })
+          .from(sprintGoalTaskTable)
+          .innerJoin(taskTable, eq(sprintGoalTaskTable.taskId, taskTable.id))
+          .where(
+            and(
+              inArray(
+                sprintGoalTaskTable.goalId,
+                carried.map((goal) => goal.id),
+              ),
+              ne(taskTable.status, "cancelled"),
+              not(goalTaskIsDone),
+            ),
+          );
+        const carriedLinks = openLinks.flatMap((link) => {
+          const goalId = copyOf.get(link.goalId);
+          return goalId ? [{ goalId, taskId: link.taskId }] : [];
+        });
+        if (carriedLinks.length > 0) {
+          await tx.insert(sprintGoalTaskTable).values(carriedLinks);
+        }
+      }
+
+      // A repeating goal comes back fresh every week. When it is also carried
+      // over, the carried copy already is next week's goal.
+      const repeating = scored.filter(
+        (goal) => goal.repeatWeekly && !goal.carryOver,
+      );
+      if (repeating.length > 0) {
         await tx.insert(sprintGoalTable).values(
-          carried.map((goal) => ({
+          repeating.map((goal) => ({
             workspaceId,
             title: goal.title,
             description: goal.description,
             ownerId: goal.ownerId,
             points: goal.points,
-            carriedFromGoalId: goal.id,
-            carryOverCount: goal.carryOverCount + 1,
+            repeatWeekly: true,
             position: goal.position,
           })),
         );

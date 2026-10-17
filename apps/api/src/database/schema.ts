@@ -556,6 +556,8 @@ export const sprintGoalTable = pgTable(
       { onDelete: "set null", onUpdate: "cascade" },
     ),
     carryOverCount: integer("carry_over_count").notNull().default(0),
+    // Re-created fresh for the next sprint on every close.
+    repeatWeekly: boolean("repeat_weekly").notNull().default(false),
     position: integer("position").notNull().default(0),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { mode: "date" })
@@ -569,6 +571,30 @@ export const sprintGoalTable = pgTable(
       table.sprintId,
     ),
     index("sprint_goal_sprintId_idx").on(table.sprintId),
+  ],
+);
+
+// The tickets that must be finished to reach a goal.
+export const sprintGoalTaskTable = pgTable(
+  "sprint_goal_task",
+  {
+    goalId: text("goal_id")
+      .notNull()
+      .references(() => sprintGoalTable.id, {
+        onDelete: "cascade",
+        onUpdate: "cascade",
+      }),
+    taskId: text("task_id")
+      .notNull()
+      .references(() => taskTable.id, {
+        onDelete: "cascade",
+        onUpdate: "cascade",
+      }),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.goalId, table.taskId] }),
+    index("sprint_goal_task_taskId_idx").on(table.taskId),
   ],
 );
 

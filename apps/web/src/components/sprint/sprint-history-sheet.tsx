@@ -110,25 +110,56 @@ export default function SprintHistorySheet({
                     {expanded && sprint.goals.length > 0 && (
                       <ul className="space-y-1 px-9 pb-2">
                         {sprint.goals.map((goal) => (
-                          <li
-                            key={goal.id}
-                            className="flex items-baseline gap-2 text-xs"
-                          >
-                            <span
-                              className={cn(
-                                "w-16 shrink-0 font-medium",
-                                goal.result && RESULT_STYLES[goal.result],
+                          <li key={goal.id} className="text-xs">
+                            <div className="flex items-baseline gap-2">
+                              <span
+                                className={cn(
+                                  "w-16 shrink-0 font-medium",
+                                  goal.result && RESULT_STYLES[goal.result],
+                                )}
+                              >
+                                {goal.result &&
+                                  t(`sprint:goals.result.${goal.result}`)}
+                              </span>
+                              <span className="truncate text-foreground">
+                                {goal.title}
+                              </span>
+                              {goal.taskCount > 0 && (
+                                <span className="shrink-0 tabular-nums text-muted-foreground">
+                                  {t("sprint:goals.progress", {
+                                    done: goal.doneTaskCount,
+                                    total: goal.taskCount,
+                                  })}
+                                </span>
                               )}
-                            >
-                              {goal.result &&
-                                t(`sprint:goals.result.${goal.result}`)}
-                            </span>
-                            <span className="truncate text-foreground">
-                              {goal.title}
-                            </span>
-                            <span className="ml-auto shrink-0 tabular-nums text-muted-foreground">
-                              {t("sprint:goals.points", { count: goal.points })}
-                            </span>
+                              <span className="ml-auto shrink-0 tabular-nums text-muted-foreground">
+                                {t("sprint:goals.points", {
+                                  count: goal.points,
+                                })}
+                              </span>
+                            </div>
+                            {goal.tasks.length > 0 && (
+                              <ul className="mt-0.5 mb-1 space-y-0.5 pl-[4.5rem]">
+                                {goal.tasks.map((task) => (
+                                  <li
+                                    key={task.id}
+                                    className="flex items-baseline gap-2 text-muted-foreground"
+                                  >
+                                    <span className="shrink-0 font-mono">
+                                      {task.projectSlug}-{task.number}
+                                    </span>
+                                    <span
+                                      className={cn(
+                                        "truncate",
+                                        task.done && "line-through",
+                                      )}
+                                    >
+                                      {task.title}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
                           </li>
                         ))}
                       </ul>

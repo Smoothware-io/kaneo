@@ -1,7 +1,13 @@
-import { and, eq, isNull, max } from "drizzle-orm";
+import { and, eq, inArray, isNull, max } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import db from "../../database";
-import { sprintGoalTable, workspaceUserTable } from "../../database/schema";
+import {
+  projectTable,
+  sprintGoalTable,
+  sprintGoalTaskTable,
+  taskTable,
+  workspaceUserTable,
+} from "../../database/schema";
 import { selectGoal, selectOpenGoals } from "./sprint-goal-query";
 
 type GoalFields = {
@@ -9,6 +15,7 @@ type GoalFields = {
   description?: string | null;
   ownerId?: string | null;
   points?: number;
+  repeatWeekly?: boolean;
 };
 
 async function assertGoalOwner(workspaceId: string, ownerId: string) {
@@ -52,11 +59,37 @@ export function getSprintGoals(workspaceId: string) {
   return selectOpenGoals(workspaceId);
 }
 
+// Goals may only point at tasks in the workspace's own projects.
+async function assertWorkspaceTasks(workspaceId: string, taskIds: string[]) {
+  const unique = [...new Set(taskIds)];
+  if (unique.length === 0) return unique;
+  const found = await db
+    .select({ id: taskTable.id })
+    .from(taskTable)
+    .innerJoin(projectTable, eq(taskTable.projectId, projectTable.id))
+    .where(
+      and(
+        inArray(taskTable.id, unique),
+        eq(projectTable.workspaceId, workspaceId),
+      ),
+    );
+  if (found.length !== unique.length) {
+    throw new HTTPException(400, {
+      message: "Every linked task must belong to this workspace",
+    });
+  }
+  return unique;
+}
+
 export async function createSprintGoal(
   workspaceId: string,
-  fields: GoalFields & { title: string },
+  {
+    taskIds = [],
+    ...fields
+  }: GoalFields & { title: string; taskIds?: string[] },
 ) {
   if (fields.ownerId) await assertGoalOwner(workspaceId, fields.ownerId);
+  const linkedTaskIds = await assertWorkspaceTasks(workspaceId, taskIds);
 
   const [last] = await db
     .select({ position: max(sprintGoalTable.position) })
@@ -68,20 +101,29 @@ export async function createSprintGoal(
       ),
     );
 
-  const [created] = await db
-    .insert(sprintGoalTable)
-    .values({
-      workspaceId,
-      title: fields.title,
-      description: fields.description ?? null,
-      ownerId: fields.ownerId ?? null,
-      points: fields.points ?? 1,
-      position: (last?.position ?? -1) + 1,
-    })
-    .returning({ id: sprintGoalTable.id });
-  if (!created) throw new Error("Failed to create the sprint goal");
+  const created = await db.transaction(async (tx) => {
+    const [goal] = await tx
+      .insert(sprintGoalTable)
+      .values({
+        workspaceId,
+        title: fields.title,
+        description: fields.description ?? null,
+        ownerId: fields.ownerId ?? null,
+        points: fields.points ?? 1,
+        repeatWeekly: fields.repeatWeekly ?? false,
+        position: (last?.position ?? -1) + 1,
+      })
+      .returning({ id: sprintGoalTable.id });
+    if (!goal) throw new Error("Failed to create the sprint goal");
+    if (linkedTaskIds.length > 0) {
+      await tx
+        .insert(sprintGoalTaskTable)
+        .values(linkedTaskIds.map((taskId) => ({ goalId: goal.id, taskId })));
+    }
+    return goal;
+  });
 
-  return selectGoal(created.id);
+  return selectGoal(workspaceId, created.id);
 }
 
 export async function updateSprintGoal(
@@ -99,17 +141,49 @@ export async function updateSprintGoal(
       description: fields.description,
       ownerId: fields.ownerId,
       points: fields.points,
+      repeatWeekly: fields.repeatWeekly,
     })
     .where(eq(sprintGoalTable.id, goalId));
 
-  return selectGoal(goalId);
+  return selectGoal(workspaceId, goalId);
 }
 
 export async function deleteSprintGoal(workspaceId: string, goalId: string) {
   await findOpenGoal(workspaceId, goalId);
-  const goal = await selectGoal(goalId);
+  const goal = await selectGoal(workspaceId, goalId);
   await db.delete(sprintGoalTable).where(eq(sprintGoalTable.id, goalId));
   return goal;
+}
+
+export async function linkSprintGoalTasks(
+  workspaceId: string,
+  goalId: string,
+  taskIds: string[],
+) {
+  await findOpenGoal(workspaceId, goalId);
+  const linkedTaskIds = await assertWorkspaceTasks(workspaceId, taskIds);
+  await db
+    .insert(sprintGoalTaskTable)
+    .values(linkedTaskIds.map((taskId) => ({ goalId, taskId })))
+    .onConflictDoNothing();
+  return selectGoal(workspaceId, goalId);
+}
+
+export async function unlinkSprintGoalTask(
+  workspaceId: string,
+  goalId: string,
+  taskId: string,
+) {
+  await findOpenGoal(workspaceId, goalId);
+  await db
+    .delete(sprintGoalTaskTable)
+    .where(
+      and(
+        eq(sprintGoalTaskTable.goalId, goalId),
+        eq(sprintGoalTaskTable.taskId, taskId),
+      ),
+    );
+  return selectGoal(workspaceId, goalId);
 }
 
 export async function reorderSprintGoals(

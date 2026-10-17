@@ -1,5 +1,22 @@
 import { responseTimestamp, z } from "../openapi";
 
+export const sprintGoalTaskSchema = z
+  .object({
+    id: z.string(),
+    number: z.number().nullable(),
+    title: z.string(),
+    status: z.string(),
+    projectId: z.string(),
+    projectName: z.string(),
+    projectSlug: z.string(),
+    userId: z.string().nullable(),
+    assigneeName: z.string().nullable(),
+    done: z.boolean().openapi({
+      description: "In a final column, or archived by a sprint close.",
+    }),
+  })
+  .openapi("SprintGoalTask");
+
 export const sprintGoalSchema = z
   .object({
     id: z.string(),
@@ -19,7 +36,13 @@ export const sprintGoalSchema = z
     carryOverCount: z.number().int().nonnegative().openapi({
       description: "How many sprints this goal was taken into unreached.",
     }),
+    repeatWeekly: z.boolean(),
     position: z.number().int(),
+    tasks: z.array(sprintGoalTaskSchema).openapi({
+      description: "Linked tasks, unfinished first.",
+    }),
+    taskCount: z.number().int().nonnegative(),
+    doneTaskCount: z.number().int().nonnegative(),
     createdAt: responseTimestamp,
     updatedAt: responseTimestamp,
   })

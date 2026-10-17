@@ -8,6 +8,7 @@ import CommentInput from "@/components/activity/comment-input";
 import { isCommentActivity } from "@/components/activity/utils";
 import { ExternalLinksAccordion } from "@/components/external-links/external-links-accordion";
 import useAuth from "@/components/providers/auth-provider/hooks/use-auth";
+import TaskGoalBadges from "@/components/sprint/task-goal-badges";
 import {
   Accordion,
   AccordionContent,
@@ -236,6 +237,8 @@ export default function TaskDetailsContent({
             </span>
           </button>
         )}
+
+        {taskId && <TaskGoalBadges workspaceId={workspaceId} taskId={taskId} />}
 
         <p className="text-xs font-semibold text-foreground/70">
           {project?.slug}-{task?.number}

@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Toggle, ToggleGroup } from "@/components/ui/toggle-group";
 import type { SprintGoalOutcome } from "@/fetchers/sprint/close-sprint";
 import type { SprintGoal } from "@/fetchers/sprint/get-sprint-goals";
-import { formatPoints, goalScore } from "./goal-score";
+import { formatPoints, goalScore, suggestedResult } from "./goal-score";
 
 type GoalResult = SprintGoalOutcome["result"];
 
@@ -53,8 +53,22 @@ function CloseSprintForm({
   onConfirm,
 }: CloseSprintDialogProps) {
   const { t } = useTranslation();
-  const [results, setResults] = useState<Record<string, GoalResult>>({});
-  const [carryOver, setCarryOver] = useState<Record<string, boolean>>({});
+  // Start from what the linked tickets say; goals without tickets start empty.
+  const [results, setResults] = useState<Record<string, GoalResult>>(() => {
+    const initial: Record<string, GoalResult> = {};
+    for (const goal of goals) {
+      const suggestion = suggestedResult(goal);
+      if (suggestion) initial[goal.id] = suggestion;
+    }
+    return initial;
+  });
+  const [carryOver, setCarryOver] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    for (const [goalId, result] of Object.entries(results)) {
+      initial[goalId] = result !== "fully";
+    }
+    return initial;
+  });
 
   const score = goalScore(
     goals.map((goal) => ({
@@ -123,6 +137,20 @@ function CloseSprintForm({
                       {t("sprint:goals.points", { count: goal.points })}
                     </span>
                   </div>
+                  {(goal.taskCount > 0 || goal.repeatWeekly) && (
+                    <p className="text-xs text-muted-foreground">
+                      {goal.taskCount > 0 &&
+                        t("sprint:close.suggestion", {
+                          done: goal.doneTaskCount,
+                          total: goal.taskCount,
+                          result: t(
+                            `sprint:goals.result.${suggestedResult(goal) ?? "none"}`,
+                          ),
+                        })}
+                      {goal.taskCount > 0 && goal.repeatWeekly && " · "}
+                      {goal.repeatWeekly && t("sprint:close.repeats")}
+                    </p>
+                  )}
                   <div className="flex flex-wrap items-center gap-3">
                     <ToggleGroup
                       variant="outline"

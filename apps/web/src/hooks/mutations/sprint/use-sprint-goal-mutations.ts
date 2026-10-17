@@ -3,7 +3,9 @@ import createSprintGoal, {
   type SprintGoalInput,
 } from "@/fetchers/sprint/create-sprint-goal";
 import deleteSprintGoal from "@/fetchers/sprint/delete-sprint-goal";
+import linkSprintGoalTasks from "@/fetchers/sprint/link-sprint-goal-tasks";
 import reorderSprintGoals from "@/fetchers/sprint/reorder-sprint-goals";
+import unlinkSprintGoalTask from "@/fetchers/sprint/unlink-sprint-goal-task";
 import updateSprintGoal, {
   type SprintGoalPatch,
 } from "@/fetchers/sprint/update-sprint-goal";
@@ -48,6 +50,24 @@ export function useReorderSprintGoals(workspaceId: string) {
   const invalidate = useInvalidateGoals(workspaceId);
   return useMutation({
     mutationFn: (goalIds: string[]) => reorderSprintGoals(workspaceId, goalIds),
+    onSettled: invalidate,
+  });
+}
+
+export function useLinkSprintGoalTasks(workspaceId: string) {
+  const invalidate = useInvalidateGoals(workspaceId);
+  return useMutation({
+    mutationFn: ({ goalId, taskIds }: { goalId: string; taskIds: string[] }) =>
+      linkSprintGoalTasks(workspaceId, goalId, taskIds),
+    onSettled: invalidate,
+  });
+}
+
+export function useUnlinkSprintGoalTask(workspaceId: string) {
+  const invalidate = useInvalidateGoals(workspaceId);
+  return useMutation({
+    mutationFn: ({ goalId, taskId }: { goalId: string; taskId: string }) =>
+      unlinkSprintGoalTask(workspaceId, goalId, taskId),
     onSettled: invalidate,
   });
 }

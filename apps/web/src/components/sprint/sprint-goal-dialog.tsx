@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import type { SprintGoal } from "@/fetchers/sprint/get-sprint-goals";
 import {
@@ -60,6 +61,7 @@ function SprintGoalForm({
   const [description, setDescription] = useState(goal?.description ?? "");
   const [points, setPoints] = useState(String(goal?.points ?? 1));
   const [ownerId, setOwnerId] = useState(goal?.ownerId ?? NO_OWNER);
+  const [repeatWeekly, setRepeatWeekly] = useState(goal?.repeatWeekly ?? false);
   const { mutateAsync: createGoal, isPending: isCreating } =
     useCreateSprintGoal(workspaceId);
   const { mutateAsync: updateGoal, isPending: isUpdating } =
@@ -85,6 +87,7 @@ function SprintGoalForm({
       description: description.trim() || null,
       points: parsedPoints,
       ownerId: ownerId === NO_OWNER ? null : ownerId,
+      repeatWeekly,
     };
     try {
       if (goal) {
@@ -172,6 +175,21 @@ function SprintGoalForm({
                 ))}
               </SelectPopup>
             </Select>
+          </div>
+        </div>
+        <div className="flex items-start gap-3">
+          <Switch
+            id="sprint-goal-repeat"
+            checked={repeatWeekly}
+            onCheckedChange={setRepeatWeekly}
+          />
+          <div className="space-y-0.5">
+            <Label htmlFor="sprint-goal-repeat">
+              {t("sprint:goals.repeatLabel")}
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              {t("sprint:goals.repeatHint")}
+            </p>
           </div>
         </div>
       </DialogPanel>

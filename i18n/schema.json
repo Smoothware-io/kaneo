@@ -12078,6 +12078,12 @@
 						},
 						"scoreEveryGoal": {
 							"type": "string"
+						},
+						"suggestion": {
+							"type": "string"
+						},
+						"repeats": {
+							"type": "string"
 						}
 					},
 					"required": [
@@ -12090,7 +12096,9 @@
 						"goalsHeading",
 						"resultLabel",
 						"carryOver",
-						"scoreEveryGoal"
+						"scoreEveryGoal",
+						"suggestion",
+						"repeats"
 					]
 				},
 				"history": {
@@ -12308,6 +12316,66 @@
 								}
 							},
 							"required": ["fully", "half", "none"]
+						},
+						"progress": {
+							"type": "string"
+						},
+						"toggleTickets": {
+							"type": "string"
+						},
+						"noTickets": {
+							"type": "string"
+						},
+						"ticketDone": {
+							"type": "string"
+						},
+						"linkTickets": {
+							"type": "string"
+						},
+						"linkTitle": {
+							"type": "string"
+						},
+						"linkDescription": {
+							"type": "string"
+						},
+						"searchPlaceholder": {
+							"type": "string"
+						},
+						"searchHint": {
+							"type": "string"
+						},
+						"searchEmpty": {
+							"type": "string"
+						},
+						"linkAction": {
+							"type": "string"
+						},
+						"linked": {
+							"type": "string"
+						},
+						"linkError": {
+							"type": "string"
+						},
+						"unlink": {
+							"type": "string"
+						},
+						"unlinkError": {
+							"type": "string"
+						},
+						"repeatLabel": {
+							"type": "string"
+						},
+						"repeatHint": {
+							"type": "string"
+						},
+						"repeatBadge": {
+							"type": "string"
+						},
+						"repeatTooltip": {
+							"type": "string"
+						},
+						"taskBadge": {
+							"type": "string"
 						}
 					},
 					"required": [
@@ -12332,7 +12400,27 @@
 						"moveUp",
 						"moveDown",
 						"delete",
-						"result"
+						"result",
+						"progress",
+						"toggleTickets",
+						"noTickets",
+						"ticketDone",
+						"linkTickets",
+						"linkTitle",
+						"linkDescription",
+						"searchPlaceholder",
+						"searchHint",
+						"searchEmpty",
+						"linkAction",
+						"linked",
+						"linkError",
+						"unlink",
+						"unlinkError",
+						"repeatLabel",
+						"repeatHint",
+						"repeatBadge",
+						"repeatTooltip",
+						"taskBadge"
 					]
 				}
 			},

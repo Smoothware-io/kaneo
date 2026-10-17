@@ -8,7 +8,9 @@ import getSprints from "../../apps/api/src/sprint/controllers/get-sprints";
 import {
   createSprintGoal,
   getSprintGoals,
+  linkSprintGoalTasks,
   reorderSprintGoals,
+  unlinkSprintGoalTask,
   updateSprintGoal,
 } from "../../apps/api/src/sprint/controllers/sprint-goals";
 import { getSprintBoard } from "../../apps/api/src/task/controllers/get-my-tasks";
@@ -270,5 +272,140 @@ describe("sprint goals", () => {
     await expect(
       reorderSprintGoals(workspace.id, [second.id]),
     ).rejects.toMatchObject({ status: 400 });
+  });
+});
+
+describe("sprint goal tickets", () => {
+  it("tracks progress and carries only unfinished tickets over", async () => {
+    const { user, workspace } = await createWorkspaceMember();
+    const { project } = await createProjectFixture({
+      workspaceId: workspace.id,
+    });
+    const done = await insertTask({
+      projectId: project.id,
+      number: 1,
+      status: "done",
+    });
+    const open = await insertTask({ projectId: project.id, number: 2 });
+    const dropped = await insertTask({
+      projectId: project.id,
+      number: 3,
+      status: "cancelled",
+      cancelReason: "Out of scope",
+    });
+    if (!done || !open || !dropped) throw new Error("Tasks were not created");
+
+    const goal = await createSprintGoal(workspace.id, {
+      title: "Launch",
+      points: 4,
+      taskIds: [done.id, open.id],
+    });
+    if (!goal) throw new Error("Goal was not created");
+    const linked = await linkSprintGoalTasks(workspace.id, goal.id, [
+      dropped.id,
+      open.id,
+    ]);
+    expect(linked).toMatchObject({ taskCount: 3, doneTaskCount: 1 });
+    // Unfinished tickets lead the list.
+    expect(linked?.tasks.at(-1)?.id).toBe(done.id);
+
+    await closeSprint({
+      workspaceId: workspace.id,
+      currentUserId: user.id,
+      goals: [{ goalId: goal.id, result: "half", carryOver: true }],
+    });
+
+    const [history] = await getSprints(workspace.id);
+    const closed = history?.goals[0];
+    expect(closed).toMatchObject({ taskCount: 3, doneTaskCount: 1 });
+    expect(closed?.tasks.find((task) => task.id === done.id)).toMatchObject({
+      status: "archived",
+      done: true,
+    });
+
+    const [next] = await getSprintGoals(workspace.id);
+    expect(next?.carriedFromGoalId).toBe(goal.id);
+    expect(next?.tasks.map((task) => task.id)).toEqual([open.id]);
+  });
+
+  it("re-creates repeating goals fresh every sprint", async () => {
+    const { user, workspace } = await createWorkspaceMember();
+    const { project } = await createProjectFixture({
+      workspaceId: workspace.id,
+    });
+    const task = await insertTask({ projectId: project.id, number: 1 });
+    if (!task) throw new Error("Task was not created");
+    const weekly = await createSprintGoal(workspace.id, {
+      title: "Inbox zero",
+      points: 2,
+      repeatWeekly: true,
+      taskIds: [task.id],
+    });
+    const carried = await createSprintGoal(workspace.id, {
+      title: "Weekly demo",
+      repeatWeekly: true,
+    });
+    if (!weekly || !carried) throw new Error("Goals were not created");
+    await updateSprintGoal(workspace.id, carried.id, { title: "Demo" });
+
+    await closeSprint({
+      workspaceId: workspace.id,
+      currentUserId: user.id,
+      goals: [
+        { goalId: weekly.id, result: "none", carryOver: false },
+        { goalId: carried.id, result: "half", carryOver: true },
+      ],
+    });
+
+    const next = await getSprintGoals(workspace.id);
+    expect(next).toEqual([
+      expect.objectContaining({
+        title: "Inbox zero",
+        points: 2,
+        repeatWeekly: true,
+        carryOverCount: 0,
+        carriedFromGoalId: null,
+        taskCount: 0,
+      }),
+      // Carried and repeating: the carried copy is next week's only one.
+      expect.objectContaining({
+        title: "Demo",
+        repeatWeekly: true,
+        carryOverCount: 1,
+        carriedFromGoalId: carried.id,
+      }),
+    ]);
+  });
+
+  it("only links tasks of the goal's workspace and unlinks them", async () => {
+    const { workspace } = await createWorkspaceMember();
+    const { workspace: other } = await createWorkspaceMember();
+    const { project: foreign } = await createProjectFixture({
+      workspaceId: other.id,
+    });
+    const { project } = await createProjectFixture({
+      workspaceId: workspace.id,
+    });
+    const outsider = await insertTask({ projectId: foreign.id, number: 1 });
+    const own = await insertTask({ projectId: project.id, number: 1 });
+    const goal = await createSprintGoal(workspace.id, { title: "Launch" });
+    if (!outsider || !own || !goal) throw new Error("Fixtures missing");
+
+    await expect(
+      linkSprintGoalTasks(workspace.id, goal.id, [outsider.id]),
+    ).rejects.toMatchObject({ status: 400 });
+    await expect(
+      createSprintGoal(workspace.id, { title: "x", taskIds: [outsider.id] }),
+    ).rejects.toMatchObject({ status: 400 });
+
+    await linkSprintGoalTasks(workspace.id, goal.id, [own.id]);
+    const unlinked = await unlinkSprintGoalTask(workspace.id, goal.id, own.id);
+    expect(unlinked?.taskCount).toBe(0);
+    expect(
+      await db
+        .select()
+        .from(schema.taskTable)
+        .where(eq(schema.taskTable.id, own.id)),
+    ).toHaveLength(1);
   });
 });

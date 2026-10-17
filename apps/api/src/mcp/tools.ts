@@ -1032,7 +1032,7 @@ export function registerMcpTools(
     "list_sprint_goals",
     {
       description:
-        "List the goals of a workspace's running weekly sprint, in order.",
+        "List the goals of a workspace's running weekly sprint, in order, each with its linked tasks (unfinished first) and progress (doneTaskCount / taskCount).",
       inputSchema: z.object({ workspaceId: nonEmptyString }),
     },
     async (args) =>
@@ -1046,13 +1046,23 @@ export function registerMcpTools(
   registerTool(
     "create_sprint_goal",
     {
-      description: "Add a goal to a workspace's running weekly sprint.",
+      description:
+        "Add a goal to a workspace's running weekly sprint, optionally linked to the tasks that must be finished to reach it.",
       inputSchema: z.object({
         workspaceId: nonEmptyString,
         title: nonEmptyString,
         description: optionalNonEmptyString,
         ownerId: optionalNonEmptyString.describe("Owner's member user ID"),
         points: goalPoints.optional(),
+        repeatWeekly: z
+          .boolean()
+          .optional()
+          .describe("Re-create the goal fresh for every next sprint"),
+        taskIds: z
+          .array(nonEmptyString)
+          .max(100)
+          .optional()
+          .describe("Tasks that must be finished to reach the goal"),
       }),
     },
     async ({ workspaceId, ...goal }) =>
@@ -1076,6 +1086,7 @@ export function registerMcpTools(
         description: z.string().nullable().optional(),
         ownerId: nullableOptionalNonEmptyString,
         points: goalPoints.optional(),
+        repeatWeekly: z.boolean().optional(),
       }),
     },
     async ({ workspaceId, goalId, ...patch }) =>
@@ -1106,6 +1117,46 @@ export function registerMcpTools(
   );
 
   registerTool(
+    "link_task_to_goal",
+    {
+      description:
+        "Link one or more tasks to an open sprint goal. A task can belong to several goals; already linked tasks are left as they are.",
+      inputSchema: z.object({
+        workspaceId: nonEmptyString,
+        goalId: nonEmptyString,
+        taskIds: z.array(nonEmptyString).min(1).max(100),
+      }),
+    },
+    async (args) =>
+      run(() =>
+        client.json(
+          `/api/sprint/goals/${encodeURIComponent(args.workspaceId)}/${encodeURIComponent(args.goalId)}/tasks`,
+          { method: "POST", body: JSON.stringify({ taskIds: args.taskIds }) },
+        ),
+      ),
+  );
+
+  registerTool(
+    "unlink_task_from_goal",
+    {
+      description:
+        "Remove a task from an open sprint goal. The task itself is kept.",
+      inputSchema: z.object({
+        workspaceId: nonEmptyString,
+        goalId: nonEmptyString,
+        taskId: nonEmptyString,
+      }),
+    },
+    async (args) =>
+      run(() =>
+        client.json(
+          `/api/sprint/goals/${encodeURIComponent(args.workspaceId)}/${encodeURIComponent(args.goalId)}/tasks/${encodeURIComponent(args.taskId)}`,
+          { method: "DELETE" },
+        ),
+      ),
+  );
+
+  registerTool(
     "list_sprints",
     {
       description:
@@ -1124,7 +1175,7 @@ export function registerMcpTools(
     "close_sprint",
     {
       description:
-        "Close the workspace's weekly sprint: archives finished tasks, carries unfinished ones over, and scores the goals. Every open goal (see list_sprint_goals) needs a result: fully (all points), half (half the points) or none. carryOver copies the goal into the next sprint. Requires workspace admin rights.",
+        "Close the workspace's weekly sprint: archives finished tasks, carries unfinished ones over, and scores the goals. Every open goal (see list_sprint_goals) needs a result: fully (all points), half (half the points) or none. A good default follows the linked tasks: all done is fully, some done is half, none done is none. carryOver copies the goal, with its unfinished tasks, into the next sprint; repeating goals come back fresh regardless. Requires workspace admin rights.",
       inputSchema: z.object({
         workspaceId: nonEmptyString,
         goals: z
