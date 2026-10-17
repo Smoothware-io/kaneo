@@ -140,6 +140,12 @@ export function registerTools(
         slug: optionalNonEmptyString,
         description: z.string().optional(),
         isPublic: z.boolean().optional(),
+        inSprint: z
+          .boolean()
+          .optional()
+          .describe(
+            "Part of the workspace sprint; false keeps the project off the sprint board and out of sprint closes",
+          ),
       }),
     },
     async (args) => {
@@ -180,7 +186,14 @@ export function registerTools(
               ? existing.isPublic
               : false;
 
-        const body = { name, icon, slug, description, isPublic };
+        const body = {
+          name,
+          icon,
+          slug,
+          description,
+          isPublic,
+          ...(patch.inSprint !== undefined ? { inSprint: patch.inSprint } : {}),
+        };
 
         return client.json(`/api/project/${encodeURIComponent(id)}`, {
           method: "PUT",

@@ -318,6 +318,12 @@ export function registerMcpTools(
         slug: optionalNonEmptyString,
         description: z.string().optional(),
         isPublic: z.boolean().optional(),
+        inSprint: z
+          .boolean()
+          .optional()
+          .describe(
+            "Part of the workspace sprint; false keeps the project off the sprint board and out of sprint closes",
+          ),
       }),
     },
     async (args) => {
@@ -355,7 +361,16 @@ export function registerMcpTools(
               : false;
         return client.json(`/api/project/${encodeURIComponent(id)}`, {
           method: "PUT",
-          body: JSON.stringify({ name, icon, slug, description, isPublic }),
+          body: JSON.stringify({
+            name,
+            icon,
+            slug,
+            description,
+            isPublic,
+            ...(patch.inSprint !== undefined
+              ? { inSprint: patch.inSprint }
+              : {}),
+          }),
         });
       });
     },

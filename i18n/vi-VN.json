@@ -964,7 +964,14 @@
 			"toastMoved": "Đã chuyển dự án thành công",
 			"toastMovedWithUnassigned": "Đã chuyển dự án thành công. {{taskCount}} công việc đã bị hủy phân công.",
 			"toastMoveError": "Không thể chuyển dự án",
-			"moveTargetsError": "Không thể kiểm tra những không gian làm việc mà bạn có thể chuyển dự án này đến. Hãy tải lại trang để thử lại."
+			"moveTargetsError": "Không thể kiểm tra những không gian làm việc mà bạn có thể chuyển dự án này đến. Hãy tải lại trang để thử lại.",
+			"inSprintHint": "When off, the tasks stay off the Sprint board and closing the sprint leaves them alone. The project's own board works as usual.",
+			"inSprintLabel": "Part of the sprint",
+			"sprintExcludedToast": "Project kept out of the sprint",
+			"sprintIncludedToast": "Project added to the sprint",
+			"sprintSubtitle": "Choose whether this project's tasks belong to the workspace's weekly sprint.",
+			"sprintTitle": "Sprint",
+			"sprintUpdateError": "Failed to update the sprint setting"
 		},
 		"projectIntegrations": {
 			"pageTitle": "Tích hợp dự án",

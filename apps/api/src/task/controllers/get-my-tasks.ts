@@ -97,10 +97,11 @@ async function getWorkspaceBoard(
     .from(projectTable)
     .where(
       scope.kind === "sprint"
-        ? // Archived projects are out of the running sprint.
+        ? // Archived projects and ones opted out are not in the sprint.
           and(
             eq(projectTable.workspaceId, workspaceId),
             isNull(projectTable.archivedAt),
+            eq(projectTable.inSprint, true),
           )
         : eq(projectTable.workspaceId, workspaceId),
     );

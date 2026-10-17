@@ -210,6 +210,31 @@ describe("MCP tool catalog", () => {
     expect(lastRequest().url).toBe("http://api.test/api/notification");
   });
 
+  it("keeps a project out of the sprint and leaves the flag alone otherwise", async () => {
+    apiFetch.mockImplementation(async (_input: unknown, init?: RequestInit) =>
+      init?.method === "PUT"
+        ? Response.json({ ok: true })
+        : Response.json({
+            id: "p1",
+            name: "QA",
+            slug: "QA",
+            icon: "Bug",
+            description: "",
+            isPublic: false,
+          }),
+    );
+
+    await call("update_project", { id: "p1", inSprint: false });
+    expect(lastRequest()).toMatchObject({
+      url: "http://api.test/api/project/p1",
+      method: "PUT",
+      body: { name: "QA", slug: "QA", inSprint: false },
+    });
+
+    await call("update_project", { id: "p1", name: "QA night" });
+    expect(lastRequest().body).not.toHaveProperty("inSprint");
+  });
+
   it("manages sprint goals", async () => {
     await call("create_sprint_goal", {
       workspaceId: "ws1",

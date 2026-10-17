@@ -23,6 +23,7 @@ import { getSubtaskParentProjects } from "../../task/get-subtask-parent-projects
 import { taskIsCompleted } from "../../task/task-is-completed";
 import {
   ARCHIVED_STATUS,
+  CANCELLED_STATUS,
   statusDetailsWithoutInput,
 } from "../../task/workflow-guards";
 import { goalScore } from "../goal-score";
@@ -40,7 +41,7 @@ export type GoalOutcome = {
 
 /**
  * Closes the workspace's weekly sprint: every finished task in an active
- * project is archived under this sprint, and every unfinished one stays on
+ * project that takes part in the sprint is archived under this sprint, and every unfinished one stays on
  * the board with its carry-over count raised, so slipping work is visible.
  * Every open goal must be scored; goals taken to the next sprint are copied
  * as fresh open goals so the closed one keeps its result.
@@ -98,6 +99,7 @@ async function closeSprint({
           and(
             eq(projectTable.workspaceId, workspaceId),
             isNull(projectTable.archivedAt),
+            eq(projectTable.inSprint, true),
           ),
         );
 
@@ -208,7 +210,7 @@ async function closeSprint({
                 sprintGoalTaskTable.goalId,
                 carried.map((goal) => goal.id),
               ),
-              ne(taskTable.status, "cancelled"),
+              ne(taskTable.status, CANCELLED_STATUS),
               not(goalTaskIsDone),
             ),
           );

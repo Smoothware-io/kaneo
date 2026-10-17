@@ -18,6 +18,7 @@ import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import PageTitle from "@/components/page-title";
+import ProjectSprintSetting from "@/components/project/project-sprint-setting";
 import { TasksImportExport } from "@/components/project/tasks-import-export.tsx";
 import {
   AlertDialog,
@@ -862,6 +863,14 @@ function RouteComponent() {
             )}
           </div>
         </div>
+
+        {isCurrentProject && project?.workspaceId && (
+          <ProjectSprintSetting
+            projectId={projectId}
+            workspaceId={project.workspaceId}
+            canEdit={canEdit}
+          />
+        )}
 
         {canDelete && (
           <div className="space-y-6">

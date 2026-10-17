@@ -1,0 +1,1 @@
+ALTER TABLE "project" ADD COLUMN "in_sprint" boolean DEFAULT true NOT NULL;

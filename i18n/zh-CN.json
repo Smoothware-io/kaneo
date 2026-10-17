@@ -964,7 +964,14 @@
 			"toastMoved": "项目移动成功",
 			"toastMovedWithUnassigned": "项目移动成功。已取消分配 {{taskCount}} 个任务。",
 			"toastMoveError": "移动项目失败",
-			"moveTargetsError": "无法检查你可以将此项目移动到哪些工作区。请重新加载页面后重试。"
+			"moveTargetsError": "无法检查你可以将此项目移动到哪些工作区。请重新加载页面后重试。",
+			"inSprintHint": "When off, the tasks stay off the Sprint board and closing the sprint leaves them alone. The project's own board works as usual.",
+			"inSprintLabel": "Part of the sprint",
+			"sprintExcludedToast": "Project kept out of the sprint",
+			"sprintIncludedToast": "Project added to the sprint",
+			"sprintSubtitle": "Choose whether this project's tasks belong to the workspace's weekly sprint.",
+			"sprintTitle": "Sprint",
+			"sprintUpdateError": "Failed to update the sprint setting"
 		},
 		"projectIntegrations": {
 			"pageTitle": "项目集成",

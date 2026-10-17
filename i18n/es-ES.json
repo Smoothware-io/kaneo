@@ -626,7 +626,14 @@
 			"toastMoved": "Proyecto movido correctamente",
 			"toastMovedWithUnassigned": "Proyecto movido correctamente. {{taskCount}} tarea(s) quedaron sin asignar.",
 			"toastMoveError": "No se pudo mover el proyecto",
-			"moveTargetsError": "No se pudo comprobar a qué espacios de trabajo puedes mover este proyecto. Vuelve a cargar la página para intentarlo de nuevo."
+			"moveTargetsError": "No se pudo comprobar a qué espacios de trabajo puedes mover este proyecto. Vuelve a cargar la página para intentarlo de nuevo.",
+			"inSprintHint": "When off, the tasks stay off the Sprint board and closing the sprint leaves them alone. The project's own board works as usual.",
+			"inSprintLabel": "Part of the sprint",
+			"sprintExcludedToast": "Project kept out of the sprint",
+			"sprintIncludedToast": "Project added to the sprint",
+			"sprintSubtitle": "Choose whether this project's tasks belong to the workspace's weekly sprint.",
+			"sprintTitle": "Sprint",
+			"sprintUpdateError": "Failed to update the sprint setting"
 		},
 		"projectIntegrations": {
 			"pageTitle": "Integraciones del Proyecto",

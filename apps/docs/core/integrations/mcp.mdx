@@ -145,7 +145,8 @@ tools expect. Time entries have no delete endpoint on the API, so there is no
 `list_sprint_goals`: `fully` earns the goal's points, `half` earns half, and
 `none` earns nothing. Set `carryOver` to copy a goal into the next sprint
 with its unfinished tasks. Goals created with `repeatWeekly` come back fresh
-every week.
+every week. Projects updated with `inSprint: false` (via `update_project`)
+stay off the sprint board and are left alone when the sprint closes.
 
 ## Debugging
 

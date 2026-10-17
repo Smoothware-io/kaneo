@@ -159,7 +159,8 @@ function RouteComponent() {
       [ALL]: t("sprint:filters.allProjects"),
     };
     for (const item of projects) {
-      if (!item.archivedAt) items[item.id] = item.name;
+      // Projects kept out of the sprint have nothing on this board.
+      if (!item.archivedAt && item.inSprint) items[item.id] = item.name;
     }
     return items;
   }, [t, projects]);

@@ -22,6 +22,10 @@ export const projectSchema = z
       description:
         "Non-null once archived; archived projects are hidden by default.",
     }),
+    inSprint: z.boolean().openapi({
+      description:
+        "When false the project stays out of the workspace sprint: its tasks are not on the sprint board and closing the sprint leaves them alone.",
+    }),
     position: z.number().openapi({ description: "Sidebar order, ascending." }),
     lastTaskNumber: z.number().openapi({
       description:

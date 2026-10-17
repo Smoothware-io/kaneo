@@ -751,6 +751,10 @@
             "format": "date-time",
             "description": "Non-null once archived; archived projects are hidden by default."
           },
+          "inSprint": {
+            "type": "boolean",
+            "description": "When false the project stays out of the workspace sprint: its tasks are not on the sprint board and closing the sprint leaves them alone."
+          },
           "position": {
             "type": "number",
             "description": "Sidebar order, ascending."
@@ -771,6 +775,7 @@
           "createdAt",
           "isPublic",
           "archivedAt",
+          "inSprint",
           "position",
           "lastTaskNumber"
         ]
@@ -7658,7 +7663,7 @@
           "Projects"
         ],
         "summary": "Update project",
-        "description": "Replace a project's name, icon, slug, description, and visibility.",
+        "description": "Replace a project's name, icon, slug, description, and visibility. inSprint is optional and kept when omitted.",
         "parameters": [
           {
             "schema": {
@@ -7690,6 +7695,10 @@
                   },
                   "isPublic": {
                     "type": "boolean"
+                  },
+                  "inSprint": {
+                    "type": "boolean",
+                    "description": "Whether the project is part of the workspace sprint."
                   }
                 },
                 "required": [

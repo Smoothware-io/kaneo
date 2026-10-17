@@ -189,7 +189,7 @@ const updateProjectRoute = createRoute({
   tags: ["Projects"],
   summary: "Update project",
   description:
-    "Replace a project's name, icon, slug, description, and visibility.",
+    "Replace a project's name, icon, slug, description, and visibility. inSprint is optional and kept when omitted.",
   middleware: [
     workspaceAccess.fromProject(),
     requireWorkspacePermission({ project: ["update"] }),
@@ -522,7 +522,8 @@ const project = apiRouter<BaseVariables & { workspaceId: string }>()
   })
   .openapi(updateProjectRoute, async (c) => {
     const { id } = c.req.valid("param");
-    const { name, icon, slug, description, isPublic } = c.req.valid("json");
+    const { name, icon, slug, description, isPublic, inSprint } =
+      c.req.valid("json");
     const workspaceId = c.get("workspaceId");
     const updatedProject = await updateProjectCtrl(
       id,
@@ -533,6 +534,7 @@ const project = apiRouter<BaseVariables & { workspaceId: string }>()
       isPublic,
       workspaceId,
       await hasWorkspacePermission(c, { project: ["share"] }),
+      inSprint,
     );
     return c.json(toPublicProject(updatedProject), 200);
   })

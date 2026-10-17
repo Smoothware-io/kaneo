@@ -730,7 +730,14 @@
 			"toastMoved": "프로젝트를 이동했습니다",
 			"toastMovedWithUnassigned": "프로젝트를 이동했습니다. {{taskCount}}개 작업의 할당이 해제되었습니다.",
 			"toastMoveError": "프로젝트를 이동하지 못했습니다",
-			"moveTargetsError": "이 프로젝트를 옮길 수 있는 워크스페이스를 확인하지 못했습니다. 페이지를 새로고침해 다시 시도하세요."
+			"moveTargetsError": "이 프로젝트를 옮길 수 있는 워크스페이스를 확인하지 못했습니다. 페이지를 새로고침해 다시 시도하세요.",
+			"inSprintHint": "When off, the tasks stay off the Sprint board and closing the sprint leaves them alone. The project's own board works as usual.",
+			"inSprintLabel": "Part of the sprint",
+			"sprintExcludedToast": "Project kept out of the sprint",
+			"sprintIncludedToast": "Project added to the sprint",
+			"sprintSubtitle": "Choose whether this project's tasks belong to the workspace's weekly sprint.",
+			"sprintTitle": "Sprint",
+			"sprintUpdateError": "Failed to update the sprint setting"
 		},
 		"projectIntegrations": {
 			"pageTitle": "프로젝트 연동",

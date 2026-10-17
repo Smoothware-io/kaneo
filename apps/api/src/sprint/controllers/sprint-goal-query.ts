@@ -1,4 +1,14 @@
-import { and, asc, eq, inArray, isNull, or, type SQL, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  eq,
+  inArray,
+  isNull,
+  ne,
+  or,
+  type SQL,
+  sql,
+} from "drizzle-orm";
 import db from "../../database";
 import {
   projectTable,
@@ -8,7 +18,7 @@ import {
   userTable,
 } from "../../database/schema";
 import { taskIsCompleted } from "../../task/task-is-completed";
-import { ARCHIVED_STATUS } from "../../task/workflow-guards";
+import { ARCHIVED_STATUS, CANCELLED_STATUS } from "../../task/workflow-guards";
 
 // Closing a sprint archives its finished tasks, so archived also means done.
 export const goalTaskIsDone = sql<boolean>`(${or(
@@ -34,7 +44,10 @@ const sprintGoalColumns = {
   updatedAt: sprintGoalTable.updatedAt,
 };
 
-/** Linked tasks per goal, unfinished first so the open work leads. */
+/**
+ * Linked tasks per goal, unfinished first so the open work leads. Cancelled
+ * tasks are dropped work, so they leave the goal's progress entirely.
+ */
 async function selectGoalTasks(workspaceId: string, goalIds: string[]) {
   if (goalIds.length === 0) return new Map<string, GoalTask[]>();
   const rows = await db
@@ -59,6 +72,7 @@ async function selectGoalTasks(workspaceId: string, goalIds: string[]) {
       and(
         inArray(sprintGoalTaskTable.goalId, goalIds),
         eq(projectTable.workspaceId, workspaceId),
+        ne(taskTable.status, CANCELLED_STATUS),
       ),
     )
     .orderBy(

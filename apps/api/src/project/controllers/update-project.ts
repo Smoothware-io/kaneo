@@ -12,6 +12,7 @@ async function updateProject(
   isPublic: boolean,
   workspaceId: string,
   canShare: boolean,
+  inSprint?: boolean,
 ) {
   const [existingProject] = await db
     .select()
@@ -42,6 +43,7 @@ async function updateProject(
       slug,
       description,
       isPublic,
+      inSprint,
     })
     .where(eq(projectTable.id, id))
     .returning();

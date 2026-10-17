@@ -730,7 +730,14 @@
 			"toastMoved": "Proyek berhasil dipindahkan",
 			"toastMovedWithUnassigned": "Proyek berhasil dipindahkan. {{taskCount}} tugas dilepas penugasannya.",
 			"toastMoveError": "Gagal memindahkan proyek",
-			"moveTargetsError": "Tidak dapat memeriksa ruang kerja mana saja yang dapat menjadi tujuan pemindahan proyek ini. Muat ulang halaman untuk mencoba lagi."
+			"moveTargetsError": "Tidak dapat memeriksa ruang kerja mana saja yang dapat menjadi tujuan pemindahan proyek ini. Muat ulang halaman untuk mencoba lagi.",
+			"inSprintHint": "When off, the tasks stay off the Sprint board and closing the sprint leaves them alone. The project's own board works as usual.",
+			"inSprintLabel": "Part of the sprint",
+			"sprintExcludedToast": "Project kept out of the sprint",
+			"sprintIncludedToast": "Project added to the sprint",
+			"sprintSubtitle": "Choose whether this project's tasks belong to the workspace's weekly sprint.",
+			"sprintTitle": "Sprint",
+			"sprintUpdateError": "Failed to update the sprint setting"
 		},
 		"projectIntegrations": {
 			"pageTitle": "Integrasi Proyek",

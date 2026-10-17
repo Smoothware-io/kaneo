@@ -305,7 +305,9 @@ describe("sprint goal tickets", () => {
       dropped.id,
       open.id,
     ]);
-    expect(linked).toMatchObject({ taskCount: 3, doneTaskCount: 1 });
+    // The cancelled ticket is dropped work and leaves the progress.
+    expect(linked).toMatchObject({ taskCount: 2, doneTaskCount: 1 });
+    expect(linked?.tasks.map((task) => task.id)).not.toContain(dropped.id);
     // Unfinished tickets lead the list.
     expect(linked?.tasks.at(-1)?.id).toBe(done.id);
 
@@ -317,7 +319,7 @@ describe("sprint goal tickets", () => {
 
     const [history] = await getSprints(workspace.id);
     const closed = history?.goals[0];
-    expect(closed).toMatchObject({ taskCount: 3, doneTaskCount: 1 });
+    expect(closed).toMatchObject({ taskCount: 2, doneTaskCount: 1 });
     expect(closed?.tasks.find((task) => task.id === done.id)).toMatchObject({
       status: "archived",
       done: true,
@@ -407,5 +409,69 @@ describe("sprint goal tickets", () => {
         .from(schema.taskTable)
         .where(eq(schema.taskTable.id, own.id)),
     ).toHaveLength(1);
+  });
+});
+
+describe("projects outside the sprint", () => {
+  it("are left off the board and untouched by closing the sprint", async () => {
+    const { user, workspace } = await createWorkspaceMember();
+    const { project: product } = await createProjectFixture({
+      workspaceId: workspace.id,
+    });
+    const { project: qa } = await createProjectFixture({
+      workspaceId: workspace.id,
+    });
+    await db
+      .update(schema.projectTable)
+      .set({ inSprint: false })
+      .where(eq(schema.projectTable.id, qa.id));
+
+    const shipped = await insertTask({
+      projectId: product.id,
+      number: 1,
+      status: "done",
+    });
+    const qaDone = await insertTask({
+      projectId: qa.id,
+      number: 1,
+      status: "done",
+    });
+    const qaOpen = await insertTask({ projectId: qa.id, number: 2 });
+    if (!shipped || !qaDone || !qaOpen) throw new Error("Tasks missing");
+
+    const board = await getSprintBoard(workspace.id);
+    const onBoard = board.data.columns.flatMap((column) =>
+      column.tasks.map((task) => task.id),
+    );
+    expect(onBoard).toEqual([shipped.id]);
+
+    // A QA ticket can still be linked to a goal on purpose.
+    const goal = await createSprintGoal(workspace.id, {
+      title: "Release",
+      taskIds: [qaOpen.id],
+    });
+    if (!goal) throw new Error("Goal was not created");
+    expect(goal.taskCount).toBe(1);
+
+    const sprint = await closeSprint({
+      workspaceId: workspace.id,
+      currentUserId: user.id,
+      goals: [{ goalId: goal.id, result: "none", carryOver: true }],
+    });
+    expect(sprint).toMatchObject({ completedCount: 1, carriedOverCount: 0 });
+
+    const rows = new Map(
+      (await db.select().from(schema.taskTable)).map((row) => [row.id, row]),
+    );
+    expect(rows.get(shipped.id)?.status).toBe("archived");
+    expect(rows.get(qaDone.id)).toMatchObject({
+      status: "done",
+      sprintId: null,
+      carryOverCount: 0,
+    });
+    expect(rows.get(qaOpen.id)?.carryOverCount).toBe(0);
+    // The carried goal still follows its QA ticket.
+    const [next] = await getSprintGoals(workspace.id);
+    expect(next?.tasks.map((task) => task.id)).toEqual([qaOpen.id]);
   });
 });

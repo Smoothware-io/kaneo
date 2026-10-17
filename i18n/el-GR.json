@@ -730,7 +730,14 @@
 			"toastMoved": "Το έργο μετακινήθηκε με επιτυχία",
 			"toastMovedWithUnassigned": "Το έργο μετακινήθηκε με επιτυχία. Αφαιρέθηκε η ανάθεση από {{taskCount}} εργασίες.",
 			"toastMoveError": "Αποτυχία μετακίνησης του έργου",
-			"moveTargetsError": "Δεν ήταν δυνατός ο έλεγχος των χώρων εργασίας στους οποίους μπορείτε να μετακινήσετε αυτό το έργο. Ανανεώστε τη σελίδα για να δοκιμάσετε ξανά."
+			"moveTargetsError": "Δεν ήταν δυνατός ο έλεγχος των χώρων εργασίας στους οποίους μπορείτε να μετακινήσετε αυτό το έργο. Ανανεώστε τη σελίδα για να δοκιμάσετε ξανά.",
+			"inSprintHint": "When off, the tasks stay off the Sprint board and closing the sprint leaves them alone. The project's own board works as usual.",
+			"inSprintLabel": "Part of the sprint",
+			"sprintExcludedToast": "Project kept out of the sprint",
+			"sprintIncludedToast": "Project added to the sprint",
+			"sprintSubtitle": "Choose whether this project's tasks belong to the workspace's weekly sprint.",
+			"sprintTitle": "Sprint",
+			"sprintUpdateError": "Failed to update the sprint setting"
 		},
 		"projectIntegrations": {
 			"pageTitle": "Ενσωματώσεις έργου",

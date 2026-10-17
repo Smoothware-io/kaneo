@@ -331,6 +331,8 @@ export const projectTable = pgTable(
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
     isPublic: boolean("is_public").default(false),
     archivedAt: timestamp("archived_at", { mode: "date" }),
+    // Off for queues that run outside the weekly sprint, such as a QA board.
+    inSprint: boolean("in_sprint").notNull().default(true),
     lastTaskNumber: integer("last_task_number").notNull().default(0),
     position: integer("position").notNull().default(0),
     backgroundObjectKey: text("background_object_key"),

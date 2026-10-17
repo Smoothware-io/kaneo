@@ -24,6 +24,9 @@ export const updateProjectBody = z.object({
   slug: z.string(),
   description: z.string(),
   isPublic: z.boolean(),
+  inSprint: z.boolean().optional().openapi({
+    description: "Whether the project is part of the workspace sprint.",
+  }),
 });
 
 export const reorderProjectsBody = z.object({

@@ -730,7 +730,14 @@
 			"toastMoved": "Проектот е успешно преместен",
 			"toastMovedWithUnassigned": "Проектот е успешно преместен. {{taskCount}} задачи останаа недоделени.",
 			"toastMoveError": "Неуспешно преместување на проектот",
-			"moveTargetsError": "Не можеше да се провери во кои работни простори може да го преместите овој проект. Освежете ја страницата за да се обидете повторно."
+			"moveTargetsError": "Не можеше да се провери во кои работни простори може да го преместите овој проект. Освежете ја страницата за да се обидете повторно.",
+			"inSprintHint": "When off, the tasks stay off the Sprint board and closing the sprint leaves them alone. The project's own board works as usual.",
+			"inSprintLabel": "Part of the sprint",
+			"sprintExcludedToast": "Project kept out of the sprint",
+			"sprintIncludedToast": "Project added to the sprint",
+			"sprintSubtitle": "Choose whether this project's tasks belong to the workspace's weekly sprint.",
+			"sprintTitle": "Sprint",
+			"sprintUpdateError": "Failed to update the sprint setting"
 		},
 		"projectIntegrations": {
 			"pageTitle": "Интеграции на проект",

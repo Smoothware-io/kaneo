@@ -4021,6 +4021,27 @@
 						},
 						"toastMoveError": {
 							"type": "string"
+						},
+						"sprintTitle": {
+							"type": "string"
+						},
+						"sprintSubtitle": {
+							"type": "string"
+						},
+						"inSprintLabel": {
+							"type": "string"
+						},
+						"inSprintHint": {
+							"type": "string"
+						},
+						"sprintIncludedToast": {
+							"type": "string"
+						},
+						"sprintExcludedToast": {
+							"type": "string"
+						},
+						"sprintUpdateError": {
+							"type": "string"
 						}
 					},
 					"required": [
@@ -4075,7 +4096,14 @@
 						"moveModalConfirm",
 						"toastMoved",
 						"toastMovedWithUnassigned",
-						"toastMoveError"
+						"toastMoveError",
+						"sprintTitle",
+						"sprintSubtitle",
+						"inSprintLabel",
+						"inSprintHint",
+						"sprintIncludedToast",
+						"sprintExcludedToast",
+						"sprintUpdateError"
 					]
 				},
 				"projectIntegrations": {

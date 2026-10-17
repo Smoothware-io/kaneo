@@ -1045,7 +1045,14 @@
 			"moveModalConfirm": "Move Project",
 			"toastMoved": "Project moved successfully",
 			"toastMovedWithUnassigned": "Project moved successfully. {{taskCount}} task(s) were unassigned.",
-			"toastMoveError": "Failed to move project"
+			"toastMoveError": "Failed to move project",
+			"sprintTitle": "Sprint",
+			"sprintSubtitle": "Choose whether this project's tasks belong to the workspace's weekly sprint.",
+			"inSprintLabel": "Part of the sprint",
+			"inSprintHint": "When off, the tasks stay off the Sprint board and closing the sprint leaves them alone. The project's own board works as usual.",
+			"sprintIncludedToast": "Project added to the sprint",
+			"sprintExcludedToast": "Project kept out of the sprint",
+			"sprintUpdateError": "Failed to update the sprint setting"
 		},
 		"projectIntegrations": {
 			"pageTitle": "Project Integrations",
