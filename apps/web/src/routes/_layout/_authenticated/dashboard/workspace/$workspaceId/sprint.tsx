@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { format, getISOWeek, getISOWeekYear } from "date-fns";
+import { format } from "date-fns";
 import { produce } from "immer";
 import { CalendarCheck, History } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -28,6 +28,7 @@ import { useGetSprintGoals } from "@/hooks/queries/sprint/use-get-sprint-goals";
 import { useGetSprints } from "@/hooks/queries/sprint/use-get-sprints";
 import { useGetActiveWorkspaceUsers } from "@/hooks/queries/workspace-users/use-get-active-workspace-users";
 import { useWorkspacePermission } from "@/hooks/use-workspace-permission";
+import { openSprintWeek } from "@/lib/sprint-week";
 import { toast } from "@/lib/toast";
 import useProjectStore from "@/store/project";
 import type { ProjectWithTasks } from "@/types/project";
@@ -131,8 +132,8 @@ function RouteComponent() {
     : 0;
   const openCount = allTasks.length - finishedCount;
 
-  const now = new Date();
   const lastSprint = sprints[0];
+  const sprintWeek = openSprintWeek(new Date(), lastSprint);
 
   const members = useMemo(
     () =>
@@ -202,8 +203,8 @@ function RouteComponent() {
             <div className="mr-auto min-w-0">
               <p className="text-sm font-semibold text-foreground">
                 {t("sprint:weekLabel", {
-                  week: getISOWeek(now),
-                  year: getISOWeekYear(now),
+                  week: sprintWeek.week,
+                  year: sprintWeek.weekYear,
                 })}
               </p>
               <p className="text-xs text-muted-foreground">
@@ -315,7 +316,7 @@ function RouteComponent() {
         <CloseSprintDialog
           open={isCloseDialogOpen}
           onOpenChange={setIsCloseDialogOpen}
-          week={getISOWeek(now)}
+          week={sprintWeek.week}
           finishedCount={finishedCount}
           openCount={openCount}
           goals={goals}

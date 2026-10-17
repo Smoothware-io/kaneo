@@ -3051,7 +3051,9 @@
 			"ticketDone": "Done",
 			"toggleTickets": "Show tickets for {{title}}",
 			"unlink": "Unlink {{title}}",
-			"unlinkError": "Failed to unlink the ticket"
+			"unlinkError": "Failed to unlink the ticket",
+			"overallProgress": "{{earned}} of {{total}} pts done · {{percent}}%",
+			"toggleList": "Show or hide this week's goals"
 		}
 	}
 }

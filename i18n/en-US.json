@@ -2988,6 +2988,8 @@
 			"empty": "No goals yet. Add what the team wants to reach this week.",
 			"totalPoints_one": "{{count}} pt",
 			"totalPoints_other": "{{count}} pts",
+			"overallProgress": "{{earned}} of {{total}} pts done · {{percent}}%",
+			"toggleList": "Show or hide this week's goals",
 			"points_one": "{{count}} pt",
 			"points_other": "{{count}} pts",
 			"score": "{{earned}} / {{total}} pts — {{percent}}%",

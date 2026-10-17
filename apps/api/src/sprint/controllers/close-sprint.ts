@@ -1,5 +1,6 @@
 import {
   and,
+  desc,
   eq,
   inArray,
   isNull,
@@ -27,7 +28,7 @@ import {
   statusDetailsWithoutInput,
 } from "../../task/workflow-guards";
 import { goalScore } from "../goal-score";
-import { isoWeek } from "../iso-week";
+import { openSprintWeek } from "../iso-week";
 import { goalTaskIsDone, selectSprintGoals } from "./sprint-goal-query";
 
 // Statuses that are not part of a running sprint, so they never carry over.
@@ -104,7 +105,13 @@ async function closeSprint({
         );
 
       const closedAt = new Date();
-      const { weekYear, week } = isoWeek(closedAt);
+      const [lastClosed] = await tx
+        .select({ weekYear: sprintTable.weekYear, week: sprintTable.week })
+        .from(sprintTable)
+        .where(eq(sprintTable.workspaceId, workspaceId))
+        .orderBy(desc(sprintTable.closedAt))
+        .limit(1);
+      const { weekYear, week } = openSprintWeek(closedAt, lastClosed);
       const [created] = await tx
         .insert(sprintTable)
         .values({

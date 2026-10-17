@@ -1,9 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import { getISOWeek } from "date-fns";
 import { Target } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { useGetSprintGoals } from "@/hooks/queries/sprint/use-get-sprint-goals";
+import { useGetSprints } from "@/hooks/queries/sprint/use-get-sprints";
+import { openSprintWeek } from "@/lib/sprint-week";
 
 /** The open sprint goals a task is needed for, linking to the Sprint board. */
 export default function TaskGoalBadges({
@@ -17,12 +18,13 @@ export default function TaskGoalBadges({
   const { data: goals = [] } = useGetSprintGoals(workspaceId, {
     poll: false,
   });
+  const { data: sprints = [] } = useGetSprints(workspaceId);
   const linked = goals.filter((goal) =>
     goal.tasks.some((task) => task.id === taskId),
   );
   if (linked.length === 0) return null;
 
-  const week = getISOWeek(new Date());
+  const { week } = openSprintWeek(new Date(), sprints[0]);
   return (
     <div className="flex flex-wrap gap-1.5">
       {linked.map((goal) => (

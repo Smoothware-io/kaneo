@@ -34,6 +34,7 @@ import { useGetSprintGoals } from "@/hooks/queries/sprint/use-get-sprint-goals";
 import { cn } from "@/lib/cn";
 import { getStatusLabel } from "@/lib/i18n/domain";
 import { toast } from "@/lib/toast";
+import { formatPoints, percentOf } from "./goal-score";
 import LinkGoalTasksDialog from "./link-goal-tasks-dialog";
 import SprintGoalDialog from "./sprint-goal-dialog";
 
@@ -62,8 +63,23 @@ export default function SprintGoalsPanel({
   const [editing, setEditing] = useState<SprintGoal | null>(null);
   const [linkingGoalId, setLinkingGoalId] = useState<string | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [isOpen, setIsOpen] = useState(false);
 
   const totalPoints = goals.reduce((sum, goal) => sum + goal.points, 0);
+  // Each goal counts for the share of its linked tickets that is done.
+  const earnedPoints = goals.reduce(
+    (sum, goal) =>
+      goal.taskCount > 0
+        ? sum + (goal.points * goal.doneTaskCount) / goal.taskCount
+        : sum,
+    0,
+  );
+  const percent = percentOf(earnedPoints, totalPoints);
+  const progressLabel = t("sprint:goals.overallProgress", {
+    earned: formatPoints(Math.round(earnedPoints * 10) / 10),
+    total: totalPoints,
+    percent,
+  });
   // Read from the live list so the picker reflects links as they are added.
   const linkingGoal = goals.find((goal) => goal.id === linkingGoalId) ?? null;
 
@@ -103,24 +119,49 @@ export default function SprintGoalsPanel({
       className="border-b border-border px-4 py-3 md:px-5"
     >
       <div className="flex items-center gap-2">
-        <Target className="size-4 text-muted-foreground" />
-        <h2
-          id="sprint-goals-heading"
-          className="text-sm font-semibold text-foreground"
+        <button
+          type="button"
+          aria-expanded={isOpen}
+          aria-controls="sprint-goals-list"
+          aria-label={t("sprint:goals.toggleList")}
+          onClick={() => setIsOpen((open) => !open)}
+          className="flex min-w-0 flex-1 items-center gap-2 rounded-sm text-left"
         >
-          {t("sprint:goals.title")}
-        </h2>
-        {goals.length > 0 && (
-          <span className="text-xs text-muted-foreground">
-            {t("sprint:goals.totalPoints", { count: totalPoints })}
+          <ChevronRight
+            className={cn(
+              "size-4 shrink-0 text-muted-foreground transition-transform",
+              isOpen && "rotate-90",
+            )}
+          />
+          <Target className="size-4 shrink-0 text-muted-foreground" />
+          <span
+            id="sprint-goals-heading"
+            className="shrink-0 text-sm font-semibold text-foreground"
+          >
+            {t("sprint:goals.title")}
           </span>
-        )}
+          {goals.length > 0 && (
+            <>
+              <Progress
+                value={percent}
+                className="min-w-24 max-w-md flex-1 gap-0"
+                aria-label={progressLabel}
+              />
+              <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                {progressLabel}
+              </span>
+            </>
+          )}
+        </button>
         {canEdit && (
           <Button
             variant="ghost"
             size="xs"
-            className="ml-auto"
-            onClick={() => openDialog(null)}
+            className="shrink-0"
+            onClick={() => {
+              setIsOpen(true);
+              openDialog(null);
+            }}
           >
             <Plus className="size-3.5" />
             {t("sprint:goals.add")}
@@ -128,12 +169,18 @@ export default function SprintGoalsPanel({
         )}
       </div>
 
-      {isLoading ? null : goals.length === 0 ? (
-        <p className="mt-1.5 text-xs text-muted-foreground">
+      {!isOpen || isLoading ? null : goals.length === 0 ? (
+        <p
+          id="sprint-goals-list"
+          className="mt-1.5 text-xs text-muted-foreground"
+        >
           {t("sprint:goals.empty")}
         </p>
       ) : (
-        <ul className="mt-2 grid max-h-[40vh] gap-1 overflow-y-auto">
+        <ul
+          id="sprint-goals-list"
+          className="mt-2 grid max-h-[40vh] gap-1 overflow-y-auto"
+        >
           {goals.map((goal, index) => (
             <GoalRow
               key={goal.id}
